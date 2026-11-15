@@ -6,6 +6,8 @@ change of the minor number may change the API, the ABI or the wire protocol.
 
 ## [Unreleased]
 
+## [0.7.3] - 2026-11-15
+
 ### Changed
 
 - `include/mimusb.h`: a function comment now starts with a one-sentence summary and lists
