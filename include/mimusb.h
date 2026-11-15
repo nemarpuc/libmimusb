@@ -42,6 +42,11 @@
  * several changes into one.
  *
  * Rules every function follows
+ *   Comments   A function comment starts with a summary and lists Ownership, Blocking and
+ *              Synchronization only where they differ from the defaults: nothing is kept or handed
+ *              over, the call does not block, and it belongs to the domain of its Device. (Spec
+ *              functions, mimusb_version and mimusb_result_name may be called from any thread.)
+ *              Returns lists the results particular to the function.
  *   Results    Every call records the details of its result for the calling thread, read with
  *              mimusb_last_error(). Results that come from the serial link (the "link errors") are
  *              MIMUSB_ERR_TIMEOUT, _NO_DEVICE, _SHORT_TRANSFER and _IO; error_detail says the frame
@@ -69,8 +74,8 @@
  *   Structures Each options structure starts with struct_size (its sizeof) and reserved (zero).
  *              Its *_init function sets struct_size and zeroes the rest; it fills in no value.
  *              A required field that is zero is refused, and every enumeration starts at 1, so a
- * field left zero never selects something by accident. A flag (enable_*, down, ...) is exactly 0
- * or 1.
+ *              field left zero never selects something by accident. A flag (enable_*, down, ...)
+ *              is exactly 0 or 1.
  *
  * Specifications cited: USB 2.0, HID 1.11 and HID Usage Tables 1.7 (HUT), all from usb.org.
  * docs/API.md is the guide to this header; docs/PROTOCOL.md describes the serial link.
@@ -251,12 +256,9 @@ enum {
     /* The target set (value 1) or cleared (value 0) the Halt feature of an endpoint of a Node
      * of a mimusb_spec_create_interfaces Spec (USB 2.0 9.4.1, 9.4.5); endpoint_address names it. */
     MIMUSB_EVENT_ENDPOINT_HALT = 13,
-    /* The target selected an alternate setting of an interface of a Device given as bytes (USB 2.0
-     * 9.4.10): interface_number is the interface and value the setting. The board has already
-     * switched the interface's isochronous endpoints: those of the setting that was left stopped
-     * (what waited for them is dropped) and those of the new one are on the bus. Whether to send
-     * on them, and what, is the program's: the board adds nothing to a stream and sends no packet
-     * of its own. Sent for a setting that was already selected as well. */
+    /* The target selected an alternate setting (USB 2.0 9.4.10) of an interface of a Device given
+     * as bytes: interface_number is the interface and value the setting. Sent also when that
+     * setting was already selected. */
     MIMUSB_EVENT_INTERFACE_ALTERNATE = 14
 };
 
@@ -449,7 +451,7 @@ typedef struct mimusb_transport_options {
      * mimusb_discover reported is known to work), or MIMUSB_BAUD_FASTEST. */
     uint32_t baud_rate;
     /* Each wait for an answer while mimusb_device_open looks for the board: a few frames at the
-     * boot rate plus the latency timer of a USB serial adapter (16 ms on FTDI chips). */
+     * boot rate plus the adapter's latency timer. */
     uint32_t handshake_timeout_ms;
     /* The largest report this Device sends, Report ID included: at most the board's
      * max_report_bytes and MIMUSB_HOST_MAX_REPORT_BYTES. */
@@ -603,8 +605,8 @@ typedef struct mimusb_control_rule {
     uint8_t first_byte;
     uint8_t reserved8;
     /* ASK: 1 to MIMUSB_CONTROL_MAX_TIMEOUT_MS: how long the board waits for each answer. USB 2.0
-     * expects the first data packet of a standard request within 500 ms (9.2.6.4) and a whole
-     * control transfer within 5 s (9.2.6.1); hosts may give up sooner, so keep it short. */
+     * allows 5 s for a whole control transfer (9.2.6.1) and 500 ms for the first data packet of
+     * a standard request (9.2.6.4). */
     uint32_t timeout_ms;
     mimusb_control_action when_late; /* ASK: MIMUSB_CONTROL_ACTION_STALL or _DROP */
 } mimusb_control_rule;
@@ -635,16 +637,13 @@ typedef struct mimusb_usb_setting {
 } mimusb_usb_setting;
 
 /* One interface of a Node, as the target sees it (USB 2.0 9.6.5). The library puts class_code,
- * subclass and protocol in the Interface descriptor of every setting and does not read them, with
- * one exception mimusb_node_open makes: 0 is MIMUSB_ERR_UNSET_FIELD. A HID interface (0x03) is
- * accepted: the board has no HID driver, and the HID descriptor is an item. `number` is the
- * bInterfaceNumber, never renumbered: the numbers in use at a commit, over all Nodes, are 0, 1,
- * 2, ... without a gap (MIMUSB_ERR_PARAM otherwise, with the missing number in
- * mimusb_error_detail.offset). `settings` are bAlternateSetting 0, 1, 2, ... in order, at least
- * one; the target selects one with SET_INTERFACE (MIMUSB_EVENT_INTERFACE_ALTERNATE). An endpoint
- * address may appear in several settings of the interface; in no other interface. A string index
- * inside a descriptor comes from mimusb_device_add_string. name, if not null, becomes the
- * interface's string. */
+ * subclass and protocol in the Interface descriptor of every setting and does not read them, except
+ * that a class_code of 0 is MIMUSB_ERR_UNSET_FIELD. `number` is the bInterfaceNumber, never
+ * renumbered: over all Nodes the numbers in use are 0, 1, 2, ... without a gap (MIMUSB_ERR_PARAM
+ * otherwise, the missing number in mimusb_error_detail.offset). `settings` are bAlternateSetting
+ * 0, 1, 2, ..., at least one. An endpoint address may appear in several settings of one
+ * interface, in no other interface. A string index inside a descriptor comes from
+ * mimusb_device_add_string. name, if not null, becomes the interface's string. */
 typedef struct mimusb_usb_interface {
     uint8_t number;
     uint8_t class_code; /* required, never 0 */
@@ -708,22 +707,16 @@ typedef struct mimusb_placed_endpoint {
 } mimusb_placed_endpoint;
 
 /* Where a Node goes: the bus numbers, the endpoints of its roles and the Node's own control rules
- * (mimusb_node_open). For every Spec made by a factory other than mimusb_spec_create_interfaces,
- * first_interface is the bInterfaceNumber of the Spec's first interface (a CDC-ACM Spec's two
- * interfaces take first_interface and first_interface + 1; mimusb_spec_interface_count says how
- * many a Spec takes). `name` is the string of the first interface; a Spec with more interfaces
- * has the others' names in its options. For a HID Spec: Nodes with the same first_interface share
- * one interface and must then all have Report IDs, all different, and the same name and
- * endpoints; both endpoints are interrupt endpoints; the IN endpoint's policy is any of the three
- * and its depth is how many reports may wait on the board, at most what the board's queues hold
- * (MIMUSB_ERR_OVERFLOW). A Spec made with mimusb_spec_create_interfaces carries its own interface
- * numbers, names and endpoints: first_interface, name and endpoints are zero or null.
- *
- * extra_rules are the caller's own control rules for this Node, for any kind of Spec (as
- * mimusb_control_rule says; copied). They are tried before the rules the Spec brings, so a rule
- * of the caller's can take over a request the Spec would answer; a rule's number in
- * mimusb_node_set_rule_data is its place in this array, and the Spec's own rules follow
- * (mimusb_node_find_rule). */
+ * (mimusb_node_open). first_interface is the bInterfaceNumber of the Spec's first interface
+ * (mimusb_spec_interface_count says how many a Spec takes). `name` is the string of the first
+ * interface. HID Specs: Nodes with the same first_interface share one interface and must all have
+ * different Report IDs and the same name and endpoints; both endpoints are interrupt endpoints; the
+ * IN endpoint's depth is at most what the board's queues hold (MIMUSB_ERR_OVERFLOW). A Spec of
+ * mimusb_spec_create_interfaces carries its own interface numbers, names and endpoints:
+ * first_interface, name and endpoints are zero or null.
+ * extra_rules are the caller's own control rules for this Node (as mimusb_control_rule says;
+ * copied), tried before the rules the Spec brings. A rule's number in mimusb_node_set_rule_data is
+ * its place in this array; the Spec's own rules follow (mimusb_node_find_rule). */
 typedef struct mimusb_node_placement {
     uint32_t struct_size;
     uint32_t reserved;
@@ -791,8 +784,7 @@ typedef struct mimusb_report_id_option {
 } mimusb_report_id_option;
 
 /* Battery Strength (Generic Device Controls 0x06/0x20) as a second Input report in the profile's
- * Application Collection. Both this report_id and the profile's must be enabled and differ.
- * Start the range at 1: some Linux releases ignore a value of 0 (docs/PROFILES.md). */
+ * Application Collection. Both this report_id and the profile's must be enabled and differ. */
 typedef struct mimusb_battery_report {
     mimusb_report_id_option report_id;
     mimusb_integer_field strength;
@@ -1222,49 +1214,41 @@ static inline void mimusb_capability_manifest_init(mimusb_capability_manifest* m
 /* ---- Diagnostics ------------------------------------------------------------------------ */
 
 /* mimusb_last_error
+ * The details of the calling thread's last result.
  * Ownership: Returns the calling thread's record, valid until that thread's next call.
- * Blocking: None.
  * Synchronization: The record belongs to the calling thread; do not pass it to another.
  * Returns: Never null. */
 MIMUSB_API const mimusb_error_detail* MIMUSB_CALL mimusb_last_error(void);
 
 /* mimusb_result_name
+ * The name of a result constant.
  * Ownership: The string is static.
- * Blocking: None.
- * Synchronization: Any thread.
  * Returns: The constant's name, such as "MIMUSB_ERR_TIMEOUT", with MIMUSB_OK recorded; for a value
  * that is not a result, "MIMUSB_RESULT_UNKNOWN" with MIMUSB_ERR_PARAM recorded. */
 MIMUSB_API const char* MIMUSB_CALL mimusb_result_name(mimusb_result result);
 
 /* mimusb_frame_type_name
- * Ownership: The string is static.
- * Blocking: None.
- * Synchronization: Any thread.
  * Names the serial frame type of mimusb_error_detail.frame_type (docs/PROTOCOL.md).
+ * Ownership: The string is static.
  * Returns: The frame's name, such as "COMMIT" or "EP_IN", with MIMUSB_OK recorded; for a value
  * that is not a frame type, "UNKNOWN" with MIMUSB_ERR_PARAM recorded. */
 MIMUSB_API const char* MIMUSB_CALL mimusb_frame_type_name(int32_t frame_type);
 
 /* mimusb_version
- * Ownership: Nothing.
- * Blocking: None.
- * Synchronization: Any thread.
+ * The version of the library that is running.
  * Returns: (major << 24) | (minor << 16) | patch of the library that is running. */
 MIMUSB_API uint32_t MIMUSB_CALL mimusb_version(void);
 
 /* ---- Discovery -------------------------------------------------------------------------- */
 
 /* mimusb_discover
+ * Searches the serial ports for boards and returns a snapshot of them.
  * Ownership: The caller destroys the snapshot with mimusb_discovery_destroy.
- * Blocking: Searches every USB serial port at once, one thread each, waiting up to timeout_ms for
- * each answer; a port another program has open is skipped. On each port it pings at the boot
- * rate and, when nothing answers, sends a BREAK (which returns a board a program left on a fast
- * rate to the boot rate) and pings again, so a serial device that is not a board receives a few
- * pings and a BREAK. On a board it measures the fastest rate the link carries: from the board's
- * max_baud downward, it sends bursts of test frames and trusts a rate only when the board's own
- * error counters stay at zero (baud_rate), and it leaves the board on the boot rate. The search
- * takes a few seconds at most. A board whose firmware has another major or minor version is
- * listed with only its version and firmware_compatible 0, so that it can be flashed again.
+ * Blocking: Searches every USB serial port at once, waiting up to timeout_ms for each answer; a
+ * port another program has open is skipped. A serial device that is not a board receives a few
+ * pings and a BREAK. On a board it also measures the fastest rate the link carries and leaves the
+ * board on the boot rate (docs/API.md). A board whose firmware has another major or minor version
+ * is listed with only its version and firmware_compatible 0.
  * Synchronization: Any thread.
  * Returns: MIMUSB_OK, also when no board was found; MIMUSB_ERR_PARAM for a null out_discovery;
  * MIMUSB_ERR_UNSET_FIELD for a zero timeout. */
@@ -1272,16 +1256,15 @@ MIMUSB_API mimusb_result MIMUSB_CALL mimusb_discover(uint32_t timeout_ms,
                                                      mimusb_discovery** out_discovery);
 
 /* mimusb_discovery_count
- * Ownership: Nothing.
- * Blocking: None.
+ * The number of boards in a snapshot.
  * Synchronization: Any thread, but not during mimusb_discovery_destroy.
  * Returns: The number of boards with MIMUSB_OK recorded, or 0 with MIMUSB_ERR_PARAM recorded for
  * a null snapshot. */
 MIMUSB_API size_t MIMUSB_CALL mimusb_discovery_count(const mimusb_discovery* discovery);
 
 /* mimusb_discovery_get
+ * One board of a snapshot.
  * Ownership: The entry belongs to the snapshot.
- * Blocking: None.
  * Synchronization: As mimusb_discovery_count.
  * Returns: The entry with MIMUSB_OK recorded, or null with MIMUSB_ERR_PARAM recorded for a null
  * snapshot or an index out of range. */
@@ -1289,8 +1272,8 @@ MIMUSB_API const mimusb_device_info* MIMUSB_CALL
 mimusb_discovery_get(const mimusb_discovery* discovery, size_t index);
 
 /* mimusb_discovery_destroy
+ * Frees a snapshot.
  * Ownership: Frees the snapshot and every entry of it.
- * Blocking: None.
  * Synchronization: No other call may use the snapshot meanwhile.
  * Returns: Nothing. MIMUSB_OK is recorded, or MIMUSB_ERR_PARAM for null (nothing is done). */
 MIMUSB_API void MIMUSB_CALL mimusb_discovery_destroy(mimusb_discovery* discovery);
@@ -1298,45 +1281,42 @@ MIMUSB_API void MIMUSB_CALL mimusb_discovery_destroy(mimusb_discovery* discovery
 /* ---- Device ----------------------------------------------------------------------------- */
 
 /* mimusb_device_open
+ * Opens a board on a serial port.
  * Ownership: Copies config; the caller closes the Device with mimusb_device_close.
- * Blocking: Opens port_path (such as "/dev/ttyACM0" or "COM3") for this process alone, looks for
- * the board at the boot rate (and after a BREAK, for one left on a fast rate; waiting
- * transport.handshake_timeout_ms for each answer), reads its limits, moves the link to
- * transport.baud_rate and checks it with a short burst of test frames (MIMUSB_BAUD_FASTEST
- * measures instead, which takes up to a few seconds), and starts the reader thread. It sends no
- * configuration: the board's USB device stays off the target until a Node is opened.
+ * Blocking: Opens port_path for this process alone, looks for the board at the boot rate, reads its
+ * limits, moves the link to transport.baud_rate and starts the reader thread (MIMUSB_BAUD_FASTEST
+ * measures the rate instead). It sends no configuration: the board's USB device stays off the
+ * target until a Node is opened.
  * Synchronization: Any thread, one call per port.
  * Returns: MIMUSB_OK; MIMUSB_ERR_PARAM for a null pointer, a wrong struct_size or a bad value;
  * MIMUSB_ERR_UNSET_FIELD for a required field left zero; MIMUSB_ERR_UNSUPPORTED for a rate the
- * board cannot make, or one the adapter or wiring did not carry;
- * MIMUSB_ERR_OVERFLOW for a maximum_report_bytes the board does not take; MIMUSB_ERR_TIMEOUT when
- * no board answered; MIMUSB_ERR_PROTOCOL for firmware of another major or minor version;
- * MIMUSB_ERR_ACCESS, MIMUSB_ERR_BUSY or MIMUSB_ERR_IO for a port that cannot be opened (another
- * program may have it) or set up. */
+ * board cannot make or the link did not carry; MIMUSB_ERR_OVERFLOW for a maximum_report_bytes the
+ * board does not take; MIMUSB_ERR_TIMEOUT when no board answered; MIMUSB_ERR_PROTOCOL for firmware
+ * of another major or minor version; MIMUSB_ERR_ACCESS, MIMUSB_ERR_BUSY or MIMUSB_ERR_IO for a port
+ * that cannot be opened or set up. */
 MIMUSB_API mimusb_result MIMUSB_CALL mimusb_device_open(const char* port_path,
                                                         const mimusb_device_config* config,
                                                         mimusb_device** out_device);
 
 /* mimusb_device_close
+ * Closes a Device and its Nodes.
  * Ownership: Follows the "Closing" rule; the Device's Nodes go with it.
- * Blocking: Sends the neutral report of every open Node (keys and buttons up, contacts lifted,
- * axes at rest) within drain_timeout_ms, takes the board's USB device off the target unless
- * transport.keep_attached is 1, removes the control routing and loss reporting, puts the board
- * back on the boot rate and closes the port. Each configuration frame waits up to
- * control_timeout_ms. A failed step does not stop the next one.
- * Synchronization: Device domain.
+ * Blocking: Sends the neutral report of every open Node within drain_timeout_ms, takes the board's
+ * USB device off the target unless transport.keep_attached is 1, puts the board back on the boot
+ * rate and closes the port. Each configuration frame waits up to control_timeout_ms. A failed step
+ * does not stop the next one.
  * Returns: MIMUSB_OK; MIMUSB_ERR_PARAM for a null or closing Device; MIMUSB_ERR_UNSET_FIELD for a
- * zero timeout; MIMUSB_ERR_NO_DEVICE when the link was already gone, so the board was not reset;
- * otherwise the first link error on the way out. */
+ * zero timeout; MIMUSB_ERR_NO_DEVICE when the link was already gone; otherwise the first link error
+ * on the way out. */
 MIMUSB_API mimusb_result MIMUSB_CALL mimusb_device_close(mimusb_device* device,
                                                          uint32_t control_timeout_ms,
                                                          uint32_t drain_timeout_ms);
 
 /* mimusb_device_set_usb_identity
+ * Sets the USB device descriptor, configuration and strings the target sees.
  * Ownership: Copies usb_device and usb_config.
  * Blocking: Commits (see the top of this header), waiting as timeouts says; inside a batch it only
  * stages the change.
- * Synchronization: Device domain.
  * Returns: MIMUSB_OK; MIMUSB_ERR_PARAM for a null pointer, a wrong struct_size or a bad value;
  * MIMUSB_ERR_UNSET_FIELD for a required field or timeout left zero; the results of
  * mimusb_device_commit. */
@@ -1345,9 +1325,6 @@ MIMUSB_API mimusb_result MIMUSB_CALL mimusb_device_set_usb_identity(
     const mimusb_commit_timeouts* timeouts);
 
 /* mimusb_device_latched_error
- * Ownership: Nothing.
- * Blocking: None.
- * Synchronization: Device domain.
  * Reads the error the reader thread recorded for the link, and forgets it unless it is
  * MIMUSB_ERR_NO_DEVICE, which stays.
  * Returns: MIMUSB_OK when there is none; MIMUSB_ERR_PARAM for an invalid Device;
@@ -1356,35 +1333,31 @@ MIMUSB_API mimusb_result MIMUSB_CALL mimusb_device_set_usb_identity(
 MIMUSB_API mimusb_result MIMUSB_CALL mimusb_device_latched_error(mimusb_device* device);
 
 /* mimusb_device_is_ready
- * Ownership: Nothing.
- * Blocking: None.
+ * Whether the target has mounted the board's USB device.
  * Synchronization: Any thread while the Device is open.
  * Returns: 1 while the target has the board's USB device mounted and takes reports, else 0. */
 MIMUSB_API int32_t MIMUSB_CALL mimusb_device_is_ready(const mimusb_device* device);
 
 /* mimusb_device_wait_ready
- * Ownership: Nothing.
+ * Waits until the target mounts the board's USB device.
  * Blocking: Until the target mounts the board's USB device, or timeout_ms.
- * Synchronization: Device domain.
  * Returns: MIMUSB_OK once mounted; MIMUSB_ERR_PARAM for an invalid Device; MIMUSB_ERR_TIMEOUT;
  * MIMUSB_ERR_NO_DEVICE when the link fails meanwhile. */
 MIMUSB_API mimusb_result MIMUSB_CALL mimusb_device_wait_ready(mimusb_device* device,
                                                               uint32_t timeout_ms);
 
 /* mimusb_device_batch_begin
- * Ownership: Nothing.
+ * Starts gathering changes into one commit.
  * Blocking: None; nothing is sent. Until mimusb_device_batch_end, mimusb_node_open,
  * mimusb_node_close and mimusb_device_set_usb_identity only stage their change, and a Node opened
  * in the batch refuses reports with MIMUSB_ERR_BUSY.
- * Synchronization: Device domain.
  * Returns: MIMUSB_OK; MIMUSB_ERR_PARAM for an invalid Device; MIMUSB_ERR_BUSY inside a batch. */
 MIMUSB_API mimusb_result MIMUSB_CALL mimusb_device_batch_begin(mimusb_device* device);
 
 /* mimusb_device_batch_end
- * Ownership: Nothing.
+ * Commits every change made since mimusb_device_batch_begin.
  * Blocking: Commits every change staged since mimusb_device_batch_begin at once, waiting as
  * timeouts says.
- * Synchronization: Device domain.
  * Returns: MIMUSB_OK; MIMUSB_ERR_PARAM for an invalid Device, a null timeouts or a wrong
  * struct_size; MIMUSB_ERR_UNSET_FIELD for a zero timeout; MIMUSB_ERR_BUSY outside a batch; the
  * results of mimusb_device_commit. */
@@ -1392,13 +1365,12 @@ MIMUSB_API mimusb_result MIMUSB_CALL
 mimusb_device_batch_end(mimusb_device* device, const mimusb_commit_timeouts* timeouts);
 
 /* mimusb_device_commit
- * Ownership: Nothing.
+ * Sends the configuration and makes the board enumerate again.
  * Blocking: Sends the configuration of every open Node and commits, waiting as timeouts says.
  * mimusb_node_open, mimusb_node_close and mimusb_device_batch_end do this already; call it to
  * retry after a failed commit, or for reconnect_delay_ms: with a nonzero delay on an attached
  * device the board keeps its USB device off the target (D+ at 0 V) for that many milliseconds.
  * Inside a batch it commits the staged changes and ends the batch.
- * Synchronization: Device domain.
  * Returns: MIMUSB_OK; MIMUSB_ERR_PARAM for an invalid Device or timeouts; MIMUSB_ERR_UNSET_FIELD
  * for a zero timeout; MIMUSB_ERR_OVERFLOW when the Nodes do not fit the board;
  * MIMUSB_ERR_DESCRIPTOR_REJECTED when the board refuses the configuration; a link error. */
@@ -1407,52 +1379,39 @@ MIMUSB_API mimusb_result MIMUSB_CALL mimusb_device_commit(mimusb_device* device,
                                                           const mimusb_commit_timeouts* timeouts);
 
 /* mimusb_device_connect
- * Ownership: Nothing.
+ * Puts the board's USB device on the target.
  * Blocking: A Device that is not on the target (not configured yet, or after
  * mimusb_device_disconnect) commits instead, which puts the board's USB device on the target (D+
  * pull-up on) and waits for the board's answer. A Device that is on the target already sends
  * nothing and returns MIMUSB_OK: the board refuses a commit that attaches while it is attached.
- * Synchronization: Device domain.
  * Returns: MIMUSB_OK; MIMUSB_ERR_PARAM for an invalid Device or timeouts; MIMUSB_ERR_UNSET_FIELD
  * for a zero timeout; a link error; the results of mimusb_device_commit when it commits. */
 MIMUSB_API mimusb_result MIMUSB_CALL mimusb_device_connect(mimusb_device* device,
                                                            const mimusb_commit_timeouts* timeouts);
 
 /* mimusb_device_disconnect
- * Ownership: Nothing.
+ * Takes the board's USB device off the target.
  * Blocking: Takes the board's USB device off the target (D+ at 0 V, as if unplugged), waiting up
  * to control_timeout_ms for the board's answer. The next connect or commit configures it again.
- * Synchronization: Device domain.
  * Returns: MIMUSB_OK; MIMUSB_ERR_PARAM for an invalid Device; MIMUSB_ERR_UNSET_FIELD for a zero
  * timeout; a link error. */
 MIMUSB_API mimusb_result MIMUSB_CALL mimusb_device_disconnect(mimusb_device* device,
                                                               uint32_t control_timeout_ms);
 
 /* mimusb_device_remote_wakeup
- * Ownership: Nothing.
- * Blocking: Waits up to control_timeout_ms for the board's answer.
- * Synchronization: Device domain.
  * Wakes a target that suspended the board's USB device; the target must have enabled remote
  * wakeup (usb_config.bm_attributes bit 5 and MIMUSB_EVENT_SUSPEND with value 1).
+ * Blocking: Waits up to control_timeout_ms for the board's answer.
  * Returns: MIMUSB_OK; MIMUSB_ERR_PARAM for an invalid Device; MIMUSB_ERR_UNSET_FIELD for a zero
  * timeout; MIMUSB_ERR_BUSY when the device is not suspended; a link error. */
 MIMUSB_API mimusb_result MIMUSB_CALL mimusb_device_remote_wakeup(mimusb_device* device,
                                                                  uint32_t control_timeout_ms);
 
 /* mimusb_device_enter_bootloader
- * Ownership: Nothing.
+ * Restarts the board into its chip's own bootloader, where new firmware is written. After
+ * MIMUSB_OK the board no longer answers: the Device is good only for mimusb_device_close (which
+ * may return MIMUSB_ERR_TIMEOUT; docs/API.md).
  * Blocking: Waits up to control_timeout_ms for the board's answer.
- * Synchronization: Device domain.
- * Restarts the board into its chip's own bootloader, where new firmware is written (the RPI-RP2
- * drive on the target-facing USB port of an RP2040 or RP2350, USB DFU or a USART on an STM32F4,
- * the ROM's download mode on an ESP32-S3, the bootloader in flash on an nRF52840 board that has
- * one).
- * The board first takes its USB device off the target. After MIMUSB_OK the board no longer
- * answers: the Device is good only for mimusb_device_close. Close does not know the board
- * restarted: it returns MIMUSB_ERR_NO_DEVICE only when the serial link itself failed. A Device
- * that was never committed has nothing to detach, so close returns MIMUSB_OK;
- * for a committed one the detach COMMIT close sends gets no answer, and close returns the link
- * error (MIMUSB_ERR_TIMEOUT).
  * Returns: MIMUSB_OK; MIMUSB_ERR_PARAM for an invalid Device; MIMUSB_ERR_UNSET_FIELD for a zero
  * timeout; MIMUSB_ERR_UNSUPPORTED on a board whose chip has no bootloader the firmware can enter;
  * a link error. */
@@ -1460,80 +1419,63 @@ MIMUSB_API mimusb_result MIMUSB_CALL mimusb_device_enter_bootloader(mimusb_devic
                                                                     uint32_t control_timeout_ms);
 
 /* mimusb_device_board_info
+ * What the board reported at open.
  * Ownership: Fills the caller's out_info.
  * Blocking: None; a copy of what the board reported at open.
- * Synchronization: Device domain.
  * Returns: MIMUSB_OK; MIMUSB_ERR_PARAM for an invalid Device or a null out_info. */
 MIMUSB_API mimusb_result MIMUSB_CALL mimusb_device_board_info(const mimusb_device* device,
                                                               mimusb_device_info* out_info);
 
 /* mimusb_device_limits
+ * The limits of the board.
  * Ownership: Fills the caller's out_limits (set its struct_size; mimusb_board_limits_init does).
  * Blocking: None; a copy of what the board reported at open.
- * Synchronization: Device domain.
  * Returns: MIMUSB_OK; MIMUSB_ERR_PARAM for an invalid Device, a null out_limits or a wrong
  * struct_size. */
 MIMUSB_API mimusb_result MIMUSB_CALL mimusb_device_limits(const mimusb_device* device,
                                                           mimusb_board_limits* out_limits);
 
 /* mimusb_device_link_counters
- * Ownership: Fills the caller's out_counters (set its struct_size; mimusb_link_counters_init
- * does).
+ * With reset nonzero the board's counters are zeroed after being read.
+ * Ownership: Fills the caller's out_counters (mimusb_link_counters_init sets its struct_size).
  * Blocking: One command to the board, waiting up to control_timeout_ms for its answer.
- * Synchronization: Device domain.
  * Returns: MIMUSB_OK; MIMUSB_ERR_PARAM for an invalid Device, a null out_counters or a wrong
- * struct_size; MIMUSB_ERR_UNSET_FIELD for a zero timeout; MIMUSB_ERR_TIMEOUT or MIMUSB_ERR_IO
- * when the board did not answer. With reset
- * nonzero the board's counters are zeroed after being read: a program that wants to see a link
- * degrade reads them now and then. Any lost byte shows there, not in the report stream. */
+ * struct_size; MIMUSB_ERR_UNSET_FIELD for a zero timeout; MIMUSB_ERR_TIMEOUT or MIMUSB_ERR_IO when
+ * the board did not answer. */
 MIMUSB_API mimusb_result MIMUSB_CALL
 mimusb_device_link_counters(mimusb_device* device, uint32_t reset, uint32_t control_timeout_ms,
                             mimusb_link_counters* out_counters);
 
 /* ---- Control transfers of the target ----------------------------------------------------
- * Besides the reports, the target talks to the board on endpoint 0: descriptors, class and vendor
- * requests, GET_REPORT, SET_REPORT. The board answers none of them on its own beyond what USB
- * itself fixes (SET_ADDRESS, SET_CONFIGURATION, GET_DESCRIPTOR of the device, configuration and
- * strings, the standard requests its USB stack serves, and an interface's GET_STATUS). Everything
- * else is a list of rules, which each Node brings (mimusb_node_config.rules; the profile Nodes
- * write theirs) and the Device adds to (mimusb_device_set_control_rules). The first rule whose
- * four masked fields match the setup packet decides; a request no rule matches is stalled. */
+ * Requests on endpoint 0 that USB itself fixes are served by the board; every other one is matched
+ * against a list of rules: those of each Node (mimusb_node_config.rules; the profile Nodes write
+ * theirs), then those of the Device (mimusb_device_set_control_rules). The first rule whose four
+ * masked fields match decides; a request no rule matches is stalled. See docs/API.md. */
 
 /* mimusb_device_set_control_rules
- * Ownership: Copies rules and the bytes they point to.
- * Blocking: Sends the whole table of the Device's Nodes and these rules again, with their answer
- * bytes, and waits up to control_timeout_ms for the board's answer to each frame. Inside a batch,
- * or before the first commit, nothing is sent: the rules go with the commit.
- * Synchronization: Device domain.
  * Replaces the Device's own rules, which come after those of the Nodes. report_all 1 reports every
- * control transfer (MIMUSB_EVENT_CONTROL_SETUP), whatever its rule; with no rules and report_all 0
- * the Device adds nothing. A held request delays only the target's control transfer, never the
- * reports, but while the board waits for the verdict of a host-to-device transfer its USB task
- * does nothing else. SET_ADDRESS and SET_CONFIGURATION are never held, nor a host-to-device data
- * stage longer than max_control_data_bytes. The rules stay until replaced or
- * mimusb_device_close.
- * Returns: MIMUSB_OK; MIMUSB_ERR_PARAM for an invalid Device, report_all, count or rule (a value
- * outside its mask, an unknown action, an ANSWER with null data and a length, an ANSWER or
- * ANSWER_LAST_SENT of a host-to-device request, an endpoint that is not an IN address, a
- * timeout over MIMUSB_CONTROL_MAX_TIMEOUT_MS, a when_late other than STALL or DROP);
+ * control transfer (MIMUSB_EVENT_CONTROL_SETUP), whatever its rule. SET_ADDRESS and
+ * SET_CONFIGURATION are never held, nor a host-to-device data stage longer than
+ * max_control_data_bytes. The rules stay until replaced or mimusb_device_close.
+ * Ownership: Copies rules and the bytes they point to.
+ * Blocking: Sends the whole rule table again and waits up to control_timeout_ms for each frame.
+ * Inside a batch, or before the first commit, nothing is sent: the rules go with the commit.
+ * Returns: MIMUSB_OK; MIMUSB_ERR_PARAM for an invalid Device, report_all, count or rule;
  * MIMUSB_ERR_UNSET_FIELD for a zero control_timeout_ms, an action left 0, an ASK without
- * timeout_ms or when_late; MIMUSB_ERR_OVERFLOW for more rules or answer bytes than the board
- * holds with those of the Nodes; a link error. A rule naming an endpoint that is not an IN
- * endpoint of the committed configuration is refused by the board (the details name its NAK). */
+ * timeout_ms or when_late; MIMUSB_ERR_OVERFLOW for more rules or answer bytes than the board holds
+ * with those of the Nodes; a link error. The board refuses a rule that names an endpoint that is
+ * not an IN endpoint of the committed configuration. */
 MIMUSB_API mimusb_result MIMUSB_CALL mimusb_device_set_control_rules(
     mimusb_device* device, uint32_t report_all, const mimusb_control_rule* rules, size_t rule_count,
     uint32_t control_timeout_ms);
 
 /* mimusb_device_set_rule_data
+ * Changes the bytes of ANSWER rule number rule_index of mimusb_device_set_control_rules, up to
+ * the length its data had when the rules were set. Inside a batch, or before the first commit, it
+ * is kept for the commit.
  * Ownership: Copies data.
- * Blocking: One command to the board, waiting up to control_timeout_ms; it is retried while the
- * board is answering from that rule.
- * Synchronization: Device domain.
- * Changes the bytes an ANSWER rule of mimusb_device_set_control_rules returns, without a new
- * table: the rule is number rule_index in that array. Any number of bytes up to the rule's
- * capacity, the length of its data when the rule was given (the rule then answers with that many,
- * and may be given more again later, up to the capacity). Inside a batch, or before the first
- * commit, it is kept for the commit.
+ * Blocking: One command to the board, waiting up to control_timeout_ms; retried while the board is
+ * answering from that rule.
  * Returns: MIMUSB_OK; MIMUSB_ERR_PARAM for an invalid Device, a rule that is not an ANSWER rule, a
  * null data with a length or more bytes than the rule's capacity; MIMUSB_ERR_UNSET_FIELD for a zero
  * timeout; MIMUSB_ERR_BUSY when the board kept answering from the rule; a link error. */
@@ -1543,14 +1485,11 @@ MIMUSB_API mimusb_result MIMUSB_CALL mimusb_device_set_rule_data(mimusb_device* 
                                                                  uint32_t control_timeout_ms);
 
 /* mimusb_node_set_rule_data
- * Ownership: Copies data.
- * Blocking: One command to the board, waiting up to control_timeout_ms; it is retried while the
- * board is answering from that rule.
- * Synchronization: Device domain.
  * As mimusb_device_set_rule_data for rule number rule_index of the Node's own rules: the
- * extra_rules of its placement first, in their order, then the rules its Spec brings (the rules of
- * a mimusb_spec_create_interfaces Spec are the Spec's own: they follow the extra_rules the same
- * way; mimusb_node_find_rule finds a rule the Spec names).
+ * extra_rules of its placement first, then the rules its Spec brings (mimusb_node_find_rule finds
+ * one the Spec names).
+ * Ownership: Copies data.
+ * Blocking: As mimusb_device_set_rule_data.
  * Returns: MIMUSB_OK; MIMUSB_ERR_PARAM for an invalid Node, a rule that is not an ANSWER rule, a
  * null data with a length or more bytes than the rule's capacity; MIMUSB_ERR_UNSET_FIELD for a zero
  * timeout; MIMUSB_ERR_BUSY when the board kept answering from the rule; a link error. */
@@ -1559,12 +1498,10 @@ MIMUSB_API mimusb_result MIMUSB_CALL mimusb_node_set_rule_data(mimusb_node* node
                                                                uint32_t control_timeout_ms);
 
 /* mimusb_node_find_rule
- * Ownership: Writes into the caller's variable.
- * Blocking: None.
- * Synchronization: Device domain.
  * Finds the rule the Spec of a Node names with `slot` (mimusb_rule_slot) among the Node's own
  * rules, so that mimusb_node_set_rule_data can change its bytes: *out_rule_index is its number,
  * which counts the Node's extra_rules first (a Node has them before the rules of its Spec).
+ * Ownership: Writes into the caller's variable.
  * Returns: MIMUSB_OK; MIMUSB_ERR_PARAM for an invalid Node or a null out_rule_index;
  * MIMUSB_ERR_UNSUPPORTED when the Node's Spec has no rule of that slot. */
 MIMUSB_API mimusb_result MIMUSB_CALL mimusb_node_find_rule(const mimusb_node* node,
@@ -1572,24 +1509,17 @@ MIMUSB_API mimusb_result MIMUSB_CALL mimusb_node_find_rule(const mimusb_node* no
                                                            size_t* out_rule_index);
 
 /* mimusb_device_control_reply
+ * Answers the held transfer of token (from MIMUSB_EVENT_CONTROL_SETUP with the HELD flag, or from
+ * MIMUSB_EVENT_CONTROL_DATA for the verdict of a host-to-device transfer) with action: ANSWER (data
+ * is the data stage of a device-to-host request, empty otherwise, or the acknowledging verdict),
+ * STALL, DROP (data empty) or LEAVE (the board's own handling). A reply the board no longer waits
+ * for is dropped. The rules for each action are in docs/API.md.
  * Ownership: Copies data.
  * Blocking: Writes one frame, for up to send_timeout_ms without progress; it does not wait for the
  * board.
- * Synchronization: Device domain, and also from the event sink, which is the way to answer in
- * time.
- * Answers the held transfer of token (from MIMUSB_EVENT_CONTROL_SETUP with the HELD flag, or from
- * MIMUSB_EVENT_CONTROL_DATA for the verdict of a host-to-device transfer):
- *  - ANSWER to a device-to-host request: data is the data stage, sent whole whatever wLength says.
- *    More than wLength makes the host report an overrun; data with wLength 0 still starts a data
- *    stage, which is how a device that does so is copied. Empty data is an empty data stage.
- *  - ANSWER to any other request: data must be empty. With a host-to-device data stage the board
- *    takes the data, reports it as MIMUSB_EVENT_CONTROL_DATA and waits for the verdict: ANSWER
- *    (acknowledge), STALL, or the rule's when_late.
- *  - STALL, DROP: data must be empty.
- *  - LEAVE: the board's own handling; as a verdict it acknowledges.
- * A reply the board no longer waits for (too late, or the target gave up) is dropped.
- * Returns: MIMUSB_OK once the frame is written; MIMUSB_ERR_PARAM for an invalid Device, a token
- * of 0 or above 255, an unknown action, or data with an action that takes none;
+ * Synchronization: Device domain, and also from the event sink, which is the way to answer in time.
+ * Returns: MIMUSB_OK once the frame is written; MIMUSB_ERR_PARAM for an invalid Device, a token of
+ * 0 or above 255, an unknown action, or data with an action that takes none;
  * MIMUSB_ERR_UNSET_FIELD for a zero timeout; MIMUSB_ERR_OVERFLOW for data longer than
  * max_control_data_bytes; a link error. */
 MIMUSB_API mimusb_result MIMUSB_CALL mimusb_device_control_reply(mimusb_device* device,
@@ -1603,29 +1533,24 @@ MIMUSB_API mimusb_result MIMUSB_CALL mimusb_device_control_reply(mimusb_device* 
 #define MIMUSB_LOSS_MAX_INTERVAL_MS 60000U
 
 /* mimusb_device_set_loss_reporting
- * Ownership: Nothing.
- * Blocking: Waits up to control_timeout_ms for the board's answer.
- * Synchronization: Device domain.
- * enabled 1 makes the board report the reports it drops because its queue is full
+ * enabled 1 makes the board report the transfers it drops because a queue is full
  * (MIMUSB_EVENT_TRANSFER_LOST), at most one event per interval_ms (0 to
- * MIMUSB_LOSS_MAX_INTERVAL_MS; 0 reports each time at once). enabled 0, which is how the board
- * starts, needs interval_ms 0 and puts nothing extra on the link. The setting stays until replaced
- * or mimusb_device_close. Returns: MIMUSB_OK; MIMUSB_ERR_PARAM for an invalid Device, enabled or
- * interval_ms; MIMUSB_ERR_UNSET_FIELD for a zero timeout; a link error. */
+ * MIMUSB_LOSS_MAX_INTERVAL_MS; 0 reports each time). enabled 0 is how the board starts and needs
+ * interval_ms 0. The setting stays until replaced or mimusb_device_close.
+ * Blocking: Waits up to control_timeout_ms for the board's answer.
+ * Returns: MIMUSB_OK; MIMUSB_ERR_PARAM for an invalid Device, enabled or interval_ms;
+ * MIMUSB_ERR_UNSET_FIELD for a zero timeout; a link error. */
 MIMUSB_API mimusb_result MIMUSB_CALL mimusb_device_set_loss_reporting(mimusb_device* device,
                                                                       uint32_t enabled,
                                                                       uint32_t interval_ms,
                                                                       uint32_t control_timeout_ms);
 
 /* mimusb_device_add_string
+ * Stores a string descriptor (in the Device's language_id) and returns its index, for the caller's
+ * own class descriptors. Indices 1 to 4 keep their meaning (manufacturer, product, serial number,
+ * configuration); the first index given is 5. The string stays until mimusb_device_remove_string.
  * Ownership: Copies utf8.
  * Blocking: None; the string is sent with the next commit.
- * Synchronization: Device domain.
- * Stores a string descriptor (in the Device's language_id) and returns its index, for the caller
- * to write into its own class descriptors. Indices 1 to 4 keep their meaning (manufacturer,
- * product, serial number, configuration); an interface's name takes an index from the same pool at
- * each commit, the lowest one nothing else has. The first index given is 5. The string stays
- * until mimusb_device_remove_string.
  * Returns: MIMUSB_OK; MIMUSB_ERR_PARAM for an invalid Device, a null argument or text that is not
  * UTF-8 without control characters of at most 126 UTF-16 code units; MIMUSB_ERR_OVERFLOW when the
  * board's max_strings or the index space is used up. */
@@ -1633,24 +1558,18 @@ MIMUSB_API mimusb_result MIMUSB_CALL mimusb_device_add_string(mimusb_device* dev
                                                               const char* utf8, uint8_t* out_index);
 
 /* mimusb_device_remove_string
- * Ownership: Nothing.
- * Blocking: None.
- * Synchronization: Device domain.
  * Forgets a string given by mimusb_device_add_string; the next commit no longer sends it.
  * Returns: MIMUSB_OK; MIMUSB_ERR_PARAM for an invalid Device or an index that was not given. */
 MIMUSB_API mimusb_result MIMUSB_CALL mimusb_device_remove_string(mimusb_device* device,
                                                                  uint8_t index);
 
 /* mimusb_device_set_string
+ * Stores a string descriptor exactly as it goes on the bus: index 1 to 255, a nonzero language_id
+ * (USB 2.0 9.6.7) and unit_count UTF-16 code units (1 to 126). The same index and language is
+ * replaced. These are the only strings a Device given as bytes
+ * (mimusb_device_set_descriptors) serves.
  * Ownership: Copies the units.
  * Blocking: None; the string is sent with the next commit.
- * Synchronization: Device domain.
- * Stores a string descriptor exactly as it goes on the bus: index 1 to 255, any language_id (a
- * nonzero LANGID, USB 2.0 9.6.7), and unit_count UTF-16 code units (1 to 126), whatever they are.
- * A string with the same index and language is replaced. These are the strings a Device given as
- * bytes (mimusb_device_set_descriptors) can be read, and the only ones: the strings of
- * usb_device, usb_config and mimusb_device_add_string are not sent then. They are sent
- * with every commit while the Device is given as bytes, and never otherwise.
  * Returns: MIMUSB_OK; MIMUSB_ERR_PARAM for an invalid Device, a null units, an index of 0, a
  * language_id of 0 or a unit_count of 0 or above 126; MIMUSB_ERR_OVERFLOW when the board's
  * max_strings is used up. */
@@ -1660,9 +1579,6 @@ MIMUSB_API mimusb_result MIMUSB_CALL mimusb_device_set_string(mimusb_device* dev
                                                               size_t unit_count);
 
 /* mimusb_device_clear_string
- * Ownership: Nothing.
- * Blocking: None.
- * Synchronization: Device domain.
  * Forgets a string given by mimusb_device_set_string; the next commit no longer sends it.
  * Returns: MIMUSB_OK; MIMUSB_ERR_PARAM for an invalid Device or an index and language_id that were
  * not given. */
@@ -1671,112 +1587,61 @@ MIMUSB_API mimusb_result MIMUSB_CALL mimusb_device_clear_string(mimusb_device* d
                                                                 uint16_t language_id);
 
 /* mimusb_device_set_bos
+ * For a Device composed from Nodes: stores the Binary Object Store descriptor (USB 3.2 9.6.2);
+ * length 0 removes it. Its header and capability lengths are checked, none of the capabilities is
+ * read; at most the board's max_bos_bytes. The commit needs bcd_usb 0x0201 or more. A Device given
+ * as bytes carries its BOS in mimusb_device_descriptors.
  * Ownership: Copies the bytes.
  * Blocking: None; the BOS descriptor is sent with the next commit.
- * Synchronization: Device domain.
- * For a Device composed from Nodes: stores the Binary Object Store descriptor the target can read
- * (USB 3.2 9.6.2), for the next commit; length 0 removes it. It is checked without reading any
- * capability: a 5-byte header of type 0x0F whose wTotalLength is length and whose bNumDeviceCaps is
- * the number of capability descriptors that follow, each at least 3 bytes, of type 0x10, inside the
- * bytes; at most the board's max_bos_bytes. At the commit the Device's bcd_usb must be 0x0201 or
- * more: a host asks for a BOS descriptor only then (USB 2.0 Link Power Management ECN, USB 3.2
- * 9.6.2). A Device without one stalls the request, as before. A Device given as bytes carries its
- * BOS in mimusb_device_descriptors.
  * Returns: MIMUSB_OK; MIMUSB_ERR_PARAM for an invalid Device, a null bytes with a length, or a BOS
- * descriptor that does not hold together (mimusb_error_detail.offset is the offset of what is
- * wrong); MIMUSB_ERR_OVERFLOW for more than max_bos_bytes; MIMUSB_ERR_BUSY while the Device is
- * given as bytes. The commit refuses a bcd_usb below 0x0201 with MIMUSB_ERR_PARAM. */
+ * descriptor that does not hold together (mimusb_error_detail.offset is where);
+ * MIMUSB_ERR_OVERFLOW for more than max_bos_bytes; MIMUSB_ERR_BUSY while the Device is given as
+ * bytes. The commit refuses a bcd_usb below 0x0201 with MIMUSB_ERR_PARAM. */
 MIMUSB_API mimusb_result MIMUSB_CALL mimusb_device_set_bos(mimusb_device* device,
                                                            const uint8_t* bytes, size_t length);
 
-/* ---- A Device given as bytes -------------------------------------------------------------
- * To present a copy of a real device, the descriptors can be given as the bytes the target reads
- * instead of being composed from Nodes. The two are exclusive on a Device: while descriptors are
- * set, mimusb_node_open returns MIMUSB_ERR_BUSY, and
- * mimusb_device_set_descriptors with a Node open does. Its endpoints are then named by their
- * address on the Device (mimusb_device_endpoint_*). The OUT data of its endpoints arrives as
- * MIMUSB_EVENT_ENDPOINT_DATA with node_id 0 and the interface of the endpoint in
- * interface_number; endpoint 0 is the control rules of mimusb_device_set_control_rules, whose
- * events are those of a Device, which is how a class request of such a device is answered or
- * passed on.
- *
- * Such a Device may have alternate settings, and with them isochronous endpoints (a board whose
- * mimusb_board_limits.transfer_types has MIMUSB_TRANSFER_ISOCHRONOUS: audio and video classes
- * stream on them). The library and the board do the least that is possible with them:
- *  - SET_INTERFACE of the target switches the isochronous endpoints of the interface (those of the
- *    setting left stop, what waited for them is dropped; those of the setting selected start, at
- *    the packet size their descriptor gives) and arrives as MIMUSB_EVENT_INTERFACE_ALTERNATE. A
- *    bulk or interrupt endpoint is open from the configuration on, whichever setting names it.
- *    GET_INTERFACE answers the setting selected (0 at the start).
- *  - An isochronous IN transfer is one packet, at most the endpoint's packet size
- *    (mimusb_device_endpoint_write refuses a longer one with MIMUSB_ERR_PARAM), sent in the frame
- *    of the bus that next asks for it. The board makes no packet, fills no gap and keeps no
- *    rhythm: when nothing waits, that frame of the bus passes with no packet (USB 2.0 5.6), and
- *    when the target reads slower than the program writes, the policy of the endpoint decides
- *    what is dropped. When to write, how much, and what a missing frame means to the target is
- *    the program's, which is why the policy and its depth are the program's to choose.
- *  - An isochronous OUT packet is an MIMUSB_EVENT_ENDPOINT_DATA event like any other.
- * The class's own requests (audio sampling frequency, video probe and commit) are endpoint-0
- * control rules, as for any class. */
+/* ---- A Device given as bytes ------------------------------------------------------------
+ * To present a copy of a real device, the descriptors are given as the bytes the target reads
+ * (mimusb_device_set_descriptors) instead of being composed from Nodes. The two are exclusive on a
+ * Device. Its endpoints are named by address (mimusb_device_endpoint_*), OUT data arrives as
+ * MIMUSB_EVENT_ENDPOINT_DATA with node_id 0, and endpoint 0 is served by the Device's control
+ * rules. Alternate settings and isochronous endpoints: see docs/API.md. */
 
 /* mimusb_device_set_descriptors
+ * Presents the bytes unchanged; usb_device, usb_config and their strings are not used. The
+ * descriptors are checked structurally without reading any class (docs/API.md lists every check).
+ * Every IN endpoint needs a policy given with mimusb_device_endpoint_set_policy first.
  * Ownership: Copies the bytes.
  * Blocking: Commits as a Node open does: sends the descriptors, the strings of
  * mimusb_device_set_string, the Device's control rules and the policy of every IN endpoint, then
- * the board leaves the target's bus and returns to it with the new device, waiting as timeouts
- * says. Inside a batch it only stages them; the commit that ends the batch sends them.
- * Synchronization: Device domain.
- * Nothing is changed in the bytes and nothing is filled in; usb_device, usb_config and their four
- * strings are not used. Checked, none of it reading a class: the device descriptor is 18 bytes of
- * type 1 with one configuration; wTotalLength of the configuration is its length; every bLength
- * is at least 2 and stays inside the bytes; the interface numbers are 0, 1, 2, ... in order and
- * alternate settings are 0, 1, 2, ... in order for each interface, with nothing between them;
- * every endpoint is interrupt or bulk, or isochronous on a board whose transfer_types has it, with
- * an address that is valid, unique within a setting and within the board's limits (it may come
- * again in another setting of the same interface: a bulk or interrupt endpoint then with the same
- * descriptor, an isochronous one with any packet size the board takes) and a packet size
- * mimusb_node_open would accept (an isochronous one: up to max_transfer_bytes, at most 1023 at
- * full speed and 1024 at high speed, with bInterval 1 at full speed); an endpoint descriptor is
- * 7 bytes, or 9 in the audio-class form;
- * the totals fit mimusb_board_limits; a BOS has the header and capability lengths of
- * mimusb_device_set_bos and needs bcdUSB 0x0201 or more. Every IN endpoint needs a policy given
- * with mimusb_device_endpoint_set_policy before this call. The details name the field
- * ("descriptors.device", ".configuration", ".bos") and the offset in the bytes.
+ * waits as timeouts says. Inside a batch it only stages them.
  * Returns: MIMUSB_OK; MIMUSB_ERR_PARAM for an invalid Device, a null argument, a wrong struct_size,
- * a nonzero reserved or a descriptor that does not hold together; MIMUSB_ERR_UNSET_FIELD for a
- * zero timeout, a bcdUSB of 0 or an IN endpoint with no policy (the details name the first);
- * MIMUSB_ERR_UNSUPPORTED for an isochronous endpoint on a board that has none (the offset is that
- * of its bmAttributes); MIMUSB_ERR_OVERFLOW when the board's limits are exceeded, a configuration
- * of isochronous endpoints that needs more packet memory than the controller has included (the
- * board refuses the commit); MIMUSB_ERR_BUSY while a Node is open; the results of
- * mimusb_device_commit. */
+ * a nonzero reserved or a descriptor that does not hold together (the details name the field and
+ * the offset); MIMUSB_ERR_UNSET_FIELD for a zero timeout, a bcdUSB of 0 or an IN endpoint with no
+ * policy; MIMUSB_ERR_UNSUPPORTED for an isochronous endpoint on a board that has none;
+ * MIMUSB_ERR_OVERFLOW when the board's limits are exceeded; MIMUSB_ERR_BUSY while a Node is open;
+ * the results of mimusb_device_commit. */
 MIMUSB_API mimusb_result MIMUSB_CALL
 mimusb_device_set_descriptors(mimusb_device* device, const mimusb_device_descriptors* descriptors,
                               const mimusb_commit_timeouts* timeouts);
 
 /* mimusb_device_clear_descriptors
- * Ownership: Nothing.
- * Blocking: Takes the Device off the target (a commit with nothing to present) as
- * mimusb_node_close does for the last Node.
- * Synchronization: Device domain.
  * Forgets the descriptors, the policies of their endpoints and what the board held for them; Nodes
  * can be opened again. The strings of mimusb_device_set_string stay. Inside a batch it only
  * stages the removal.
+ * Blocking: Takes the Device off the target (a commit with nothing to present) as
+ * mimusb_node_close does for the last Node.
  * Returns: MIMUSB_OK (also when no descriptors are set); MIMUSB_ERR_PARAM for an invalid Device or
  * timeouts; MIMUSB_ERR_UNSET_FIELD for a zero timeout; the results of mimusb_device_commit. */
 MIMUSB_API mimusb_result MIMUSB_CALL
 mimusb_device_clear_descriptors(mimusb_device* device, const mimusb_commit_timeouts* timeouts);
 
 /* mimusb_device_endpoint_set_policy
+ * The policy of an IN endpoint of a Device given as bytes. It must be given for every IN endpoint
+ * before mimusb_device_set_descriptors and stays until mimusb_device_clear_descriptors.
  * Ownership: Copies policy.
- * Blocking: Before the descriptors are committed: none; the policy is kept for the commit. After:
- * as mimusb_node_endpoint_set_policy (a command to the board, waiting up to control_timeout_ms).
- * Synchronization: Device domain.
- * The policy of an IN endpoint of a Device given as bytes, as mimusb_node_endpoint_set_policy has
- * it for a Node. It must be given for every IN endpoint before mimusb_device_set_descriptors, and
- * may be changed afterwards. A policy for an address the descriptors do not have is kept for the
- * next mimusb_device_set_descriptors. Policies stay until mimusb_device_clear_descriptors.
- * Returns: MIMUSB_OK; MIMUSB_ERR_PARAM for an invalid Device, a null policy, a bad on_full, an
+ * Blocking: Before the descriptors are committed: none. After: as mimusb_node_endpoint_set_policy.
+ * Returns: MIMUSB_OK; MIMUSB_ERR_PARAM for an invalid Device, a null policy, a bad on_full or an
  * address that is not an IN address (0x81 to 0x8F); MIMUSB_ERR_UNSET_FIELD for on_full or depth 0
  * or a zero timeout; MIMUSB_ERR_OVERFLOW; a link error. */
 MIMUSB_API mimusb_result MIMUSB_CALL mimusb_device_endpoint_set_policy(
@@ -1784,18 +1649,15 @@ MIMUSB_API mimusb_result MIMUSB_CALL mimusb_device_endpoint_set_policy(
     uint32_t control_timeout_ms);
 
 /* mimusb_device_endpoint_write
+ * As mimusb_node_endpoint_write, for an IN endpoint of a Device given as bytes. A transfer to an
+ * isochronous endpoint is one packet and is not split.
  * Ownership: Copies data.
  * Blocking: As mimusb_node_endpoint_write.
  * Synchronization: Device domain; writes to different endpoints may run at the same time.
- * Sends data as one USB transfer on an IN endpoint of a Device given as bytes, with everything
- * mimusb_node_endpoint_write says of splitting, zero-length packets and the wait policy.
- * Returns: MIMUSB_OK; MIMUSB_ERR_PARAM for an invalid Device, an address that is not an IN endpoint
- * of the descriptors (none set included), null data with a nonzero length, or more than the
- * endpoint's packet size (the largest of its settings) to an isochronous endpoint: such a transfer
- * is one packet, and is not split;
- * MIMUSB_ERR_UNSET_FIELD, MIMUSB_ERR_TIMEOUT, MIMUSB_ERR_SHORT_TRANSFER, MIMUSB_ERR_OVERFLOW and a
- * link error as mimusb_node_endpoint_write; MIMUSB_ERR_BUSY as there, and while the descriptors
- * are staged in a batch that has not ended. */
+ * Returns: MIMUSB_OK; the errors of mimusb_node_endpoint_write; MIMUSB_ERR_PARAM also for an
+ * address that is not an IN endpoint of the descriptors or more than an isochronous endpoint's
+ * packet size; MIMUSB_ERR_BUSY also while the descriptors are staged in a batch that has not
+ * ended. */
 MIMUSB_API mimusb_result MIMUSB_CALL mimusb_device_endpoint_write(mimusb_device* device,
                                                                   uint8_t address,
                                                                   const uint8_t* data,
@@ -1803,10 +1665,8 @@ MIMUSB_API mimusb_result MIMUSB_CALL mimusb_device_endpoint_write(mimusb_device*
                                                                   uint32_t timeout_ms);
 
 /* mimusb_device_endpoint_stall
- * Ownership: Nothing.
- * Blocking: A command to the board, waiting up to control_timeout_ms.
- * Synchronization: Device domain.
  * As mimusb_node_endpoint_stall for an endpoint of a Device given as bytes.
+ * Blocking: A command to the board, waiting up to control_timeout_ms.
  * Returns: MIMUSB_OK; MIMUSB_ERR_PARAM for an invalid Device or an address that is not an endpoint
  * of the descriptors (none set included); MIMUSB_ERR_UNSET_FIELD for a zero timeout;
  * MIMUSB_ERR_BUSY when the board does not run the configuration; a link error. */
@@ -1815,20 +1675,16 @@ MIMUSB_API mimusb_result MIMUSB_CALL mimusb_device_endpoint_stall(mimusb_device*
                                                                   uint32_t control_timeout_ms);
 
 /* mimusb_device_endpoint_clear_stall
- * Ownership: Nothing.
- * Blocking: A command to the board, waiting up to control_timeout_ms.
- * Synchronization: Device domain.
  * As mimusb_node_endpoint_clear_stall for an endpoint of a Device given as bytes.
+ * Blocking: A command to the board, waiting up to control_timeout_ms.
  * Returns: MIMUSB_OK; the errors of mimusb_device_endpoint_stall: MIMUSB_ERR_PARAM,
  * MIMUSB_ERR_UNSET_FIELD, MIMUSB_ERR_BUSY or a link error. */
 MIMUSB_API mimusb_result MIMUSB_CALL mimusb_device_endpoint_clear_stall(
     mimusb_device* device, uint8_t address, uint32_t control_timeout_ms);
 
 /* mimusb_device_endpoint_flush
- * Ownership: Nothing.
- * Blocking: A command to the board, waiting up to control_timeout_ms.
- * Synchronization: Device domain.
  * As mimusb_node_endpoint_flush for an IN endpoint of a Device given as bytes.
+ * Blocking: A command to the board, waiting up to control_timeout_ms.
  * Returns: MIMUSB_OK; MIMUSB_ERR_PARAM for an invalid Device or an address that is not an IN
  * endpoint of the descriptors (none set included); MIMUSB_ERR_UNSET_FIELD for a zero timeout;
  * MIMUSB_ERR_BUSY when the board does not run the configuration; a link error. */
@@ -1844,26 +1700,20 @@ MIMUSB_API mimusb_result MIMUSB_CALL mimusb_device_endpoint_flush(mimusb_device*
  *   or report would be too large; the factory's own results listed with it. */
 
 /* mimusb_spec_create_keyboard
- * Ownership: As every factory.
- * Blocking: None.
- * Synchronization: Any thread.
+ * Makes a keyboard Spec.
  * Returns: As every factory, MIMUSB_OK through MIMUSB_ERR_OVERFLOW; MIMUSB_ERR_PARAM also for a
  * range that includes 0x00 to 0x03 or the modifiers. */
 MIMUSB_API mimusb_result MIMUSB_CALL
 mimusb_spec_create_keyboard(const mimusb_keyboard_options* options, mimusb_spec** out_spec);
 
 /* mimusb_spec_create_mouse
- * Ownership: As every factory.
- * Blocking: None.
- * Synchronization: Any thread.
+ * Makes a mouse Spec.
  * Returns: As every factory, MIMUSB_OK through MIMUSB_ERR_OVERFLOW. */
 MIMUSB_API mimusb_result MIMUSB_CALL mimusb_spec_create_mouse(const mimusb_mouse_options* options,
                                                               mimusb_spec** out_spec);
 
 /* mimusb_spec_create_toggle
- * Ownership: As every factory.
- * Blocking: None.
- * Synchronization: Any thread.
+ * Makes a Spec of one-bit controls on a HUT page.
  * Returns: As every factory, MIMUSB_OK through MIMUSB_ERR_OVERFLOW; MIMUSB_ERR_UNSUPPORTED for a
  * semantic that press and release cannot express, or a Camera Control Usage that is not
  * MIMUSB_USAGE_ONE_SHOT. */
@@ -1871,49 +1721,37 @@ MIMUSB_API mimusb_result MIMUSB_CALL mimusb_spec_create_toggle(const mimusb_togg
                                                                mimusb_spec** out_spec);
 
 /* mimusb_spec_create_gamepad
- * Ownership: As every factory.
- * Blocking: None.
- * Synchronization: Any thread.
+ * Makes a gamepad Spec.
  * Returns: As every factory, MIMUSB_OK through MIMUSB_ERR_OVERFLOW. */
 MIMUSB_API mimusb_result MIMUSB_CALL
 mimusb_spec_create_gamepad(const mimusb_gamepad_options* options, mimusb_spec** out_spec);
 
 /* mimusb_spec_create_touchscreen
- * Ownership: As every factory.
- * Blocking: None.
- * Synchronization: Any thread.
+ * Makes a touchscreen Spec.
  * Returns: As every factory, MIMUSB_OK through MIMUSB_ERR_OVERFLOW. */
 MIMUSB_API mimusb_result MIMUSB_CALL
 mimusb_spec_create_touchscreen(const mimusb_touchscreen_options* options, mimusb_spec** out_spec);
 
 /* mimusb_spec_create_touchpad
- * Ownership: As every factory.
- * Blocking: None.
- * Synchronization: Any thread.
+ * Makes a touchpad Spec.
  * Returns: As every factory, MIMUSB_OK through MIMUSB_ERR_OVERFLOW. */
 MIMUSB_API mimusb_result MIMUSB_CALL
 mimusb_spec_create_touchpad(const mimusb_touchpad_options* options, mimusb_spec** out_spec);
 
 /* mimusb_spec_create_pen
- * Ownership: As every factory.
- * Blocking: None.
- * Synchronization: Any thread.
+ * Makes a pen Spec.
  * Returns: As every factory, MIMUSB_OK through MIMUSB_ERR_OVERFLOW. */
 MIMUSB_API mimusb_result MIMUSB_CALL mimusb_spec_create_pen(const mimusb_pen_options* options,
                                                             mimusb_spec** out_spec);
 
 /* mimusb_spec_create_digitizer
- * Ownership: As every factory.
- * Blocking: None.
- * Synchronization: Any thread.
+ * Makes a digitizer Spec.
  * Returns: As every factory, MIMUSB_OK through MIMUSB_ERR_OVERFLOW. */
 MIMUSB_API mimusb_result MIMUSB_CALL
 mimusb_spec_create_digitizer(const mimusb_digitizer_options* options, mimusb_spec** out_spec);
 
 /* mimusb_spec_create_hid
- * Ownership: As every factory.
- * Blocking: None.
- * Synchronization: Any thread.
+ * Makes a Spec from the caller's own HID report descriptor.
  * Returns: As every factory, MIMUSB_OK through MIMUSB_ERR_OVERFLOW; MIMUSB_ERR_PARAM also for a
  * descriptor that does not parse or does not match the report table; MIMUSB_ERR_UNSUPPORTED for
  * Output or Feature items without the matching requires_* flag, a long item, or a construct the
@@ -1922,51 +1760,32 @@ MIMUSB_API mimusb_result MIMUSB_CALL mimusb_spec_create_hid(const mimusb_hid_opt
                                                             mimusb_spec** out_spec);
 
 /* mimusb_spec_create_cdc_acm
- * Ownership: Copies options. The caller owns the returned reference and releases it with
- * mimusb_spec_release.
- * Blocking: None.
- * Synchronization: Any thread.
- * Makes a Spec of a CDC-ACM function: the interfaces, class descriptors, Interface Association
- * descriptor and the control rules of options (see mimusb_cdc_acm_options). It has two
- * interfaces (mimusb_spec_interface_count) and the roles MIMUSB_ROLE_CDC_NOTIFY,
- * MIMUSB_ROLE_CDC_DATA_IN and MIMUSB_ROLE_CDC_DATA_OUT, all required: the NOTIFY endpoint is an
- * interrupt endpoint and the data endpoints are bulk. The rules (PSTN 1.2 6.3): ACCEPT for
- * SET_LINE_CODING (0x20) and SET_CONTROL_LINE_STATE (0x22), which the program hears as
- * MIMUSB_EVENT_CONTROL_SETUP (flag ACCEPTED) and CONTROL_DATA, and ANSWER for GET_LINE_CODING
- * (0x21) with the bytes of options->line_coding (slot MIMUSB_RULE_SLOT_CDC_LINE_CODING). Its
- * placement's endpoints and first_interface are checked when a Node is opened.
+ * Makes a Spec of a CDC-ACM function (see mimusb_cdc_acm_options): two interfaces and the roles
+ * MIMUSB_ROLE_CDC_NOTIFY (interrupt), MIMUSB_ROLE_CDC_DATA_IN and MIMUSB_ROLE_CDC_DATA_OUT (bulk),
+ * all required. Its control rules (PSTN 1.2 6.3): ACCEPT for SET_LINE_CODING and
+ * SET_CONTROL_LINE_STATE, ANSWER for GET_LINE_CODING (slot MIMUSB_RULE_SLOT_CDC_LINE_CODING).
+ * Ownership: Copies options. The caller releases the returned reference with mimusb_spec_release.
  * Returns: MIMUSB_OK; MIMUSB_ERR_PARAM for a null pointer, a wrong struct_size, a nonzero reserved
  * field or an invalid name; MIMUSB_ERR_UNSET_FIELD for a zero bcd_cdc or a zero dwDTERate. */
 MIMUSB_API mimusb_result MIMUSB_CALL
 mimusb_spec_create_cdc_acm(const mimusb_cdc_acm_options* options, mimusb_spec** out_spec);
 
 /* mimusb_spec_create_interfaces
- * Ownership: Copies config and everything it points to (interfaces, settings, items, descriptor
- * bytes, names, the association, the rules and their bytes). The caller owns the returned
- * reference and releases it with mimusb_spec_release.
- * Blocking: None.
- * Synchronization: Any thread.
- * Makes a Spec of any class from interfaces written out: for a CDC, audio, video, MIDI, storage or
- * vendor function, or a HID interface of the caller's own (a report descriptor copied from a
- * device, nothing checked). The Spec carries its own interface numbers, endpoints and rules, so
- * its placement is empty. The values are checked when a Node is opened with mimusb_node_open,
- * against the Device it goes on.
+ * Makes a Spec of any class from interfaces written out. It carries its own interface numbers,
+ * endpoints and rules, so its placement is empty. The values are checked when a Node is opened.
+ * Ownership: Copies config and everything it points to. The caller releases the returned
+ * reference with mimusb_spec_release.
  * Returns: MIMUSB_OK; MIMUSB_ERR_PARAM for a null pointer, a wrong struct_size, a nonzero reserved
- * field, an interface list or setting that is null with a count, or an association that is null
- * with a length; MIMUSB_ERR_OVERFLOW for a count of interfaces, settings, items or rules above
- * 255, 255, 255 and 65535. */
+ * field, a list that is null with a count, or an association that is null with a length;
+ * MIMUSB_ERR_OVERFLOW for more than 255 interfaces, settings or items, or 65535 rules. */
 MIMUSB_API mimusb_result MIMUSB_CALL mimusb_spec_create_interfaces(const mimusb_node_config* config,
                                                                    mimusb_spec** out_spec);
 
 /* mimusb_spec_roles
- * Ownership: Writes into the caller's array.
- * Blocking: None.
- * Synchronization: Any thread.
  * Lists the endpoint roles of a Spec in order and whether each is required, so a caller sees what
- * its placement must give. A HID Spec has MIMUSB_ROLE_HID_IN (required) and MIMUSB_ROLE_HID_OUT
- * (optional); a CDC-ACM Spec has MIMUSB_ROLE_CDC_NOTIFY, _CDC_DATA_IN and _CDC_DATA_OUT (all
- * required); a Spec of mimusb_spec_create_interfaces has none. *out_count is the number of roles
- * the Spec has, also when capacity is smaller (only capacity are written).
+ * its placement must give. *out_count is the number of roles the Spec has, also when capacity is
+ * smaller (only capacity are written).
+ * Ownership: Writes into the caller's array.
  * Returns: MIMUSB_OK; MIMUSB_ERR_PARAM for a null Spec or out_count, or a null out_roles with a
  * nonzero capacity. */
 MIMUSB_API mimusb_result MIMUSB_CALL mimusb_spec_roles(const mimusb_spec* spec,
@@ -1974,57 +1793,48 @@ MIMUSB_API mimusb_result MIMUSB_CALL mimusb_spec_roles(const mimusb_spec* spec,
                                                        size_t* out_count);
 
 /* mimusb_spec_interface_count
- * Ownership: Writes into the caller's variable.
- * Blocking: None.
- * Synchronization: Any thread.
  * The number of interfaces a Node of the Spec takes on the bus: 1 for a HID Spec, 2 for a CDC-ACM
  * Spec, the length of the configuration for a Spec of mimusb_spec_create_interfaces. A placement's
  * first_interface is the first of that many consecutive numbers.
+ * Ownership: Writes into the caller's variable.
  * Returns: MIMUSB_OK; MIMUSB_ERR_PARAM for a null Spec or out_count. */
 MIMUSB_API mimusb_result MIMUSB_CALL mimusb_spec_interface_count(const mimusb_spec* spec,
                                                                  size_t* out_count);
 
 /* mimusb_spec_rule_cost
- * Ownership: Writes into the caller's variables.
- * Blocking: None.
- * Synchronization: Any thread.
  * What a Node of the Spec adds to the board's control rule memory, not counting the extra_rules of
- * its placement: the number of rules, and the bytes of their ANSWER data. The board holds the
- * rules of every Node and of the Device at once, at most mimusb_board_limits.max_control_rules
- * and max_answer_bytes (MIMUSB_ERR_OVERFLOW at the commit otherwise).
+ * its placement: the number of rules and the bytes of their ANSWER data.
+ * Ownership: Writes into the caller's variables.
  * Returns: MIMUSB_OK; MIMUSB_ERR_PARAM for a null Spec or output pointer. */
 MIMUSB_API mimusb_result MIMUSB_CALL mimusb_spec_rule_cost(const mimusb_spec* spec,
                                                            size_t* out_rules,
                                                            size_t* out_answer_bytes);
 
 /* mimusb_spec_retain
+ * Adds a reference to a Spec.
  * Ownership: Adds a reference for the caller, who must already hold one.
- * Blocking: None.
- * Synchronization: Any thread.
  * Returns: Nothing. MIMUSB_OK is recorded; MIMUSB_ERR_PARAM for null, or MIMUSB_ERR_OVERFLOW when
  * the count is full (no reference is added). */
 MIMUSB_API void MIMUSB_CALL mimusb_spec_retain(mimusb_spec* spec);
 
 /* mimusb_spec_release
+ * Gives up a reference to a Spec.
  * Ownership: Gives up one of the caller's references; the last one frees the Spec. A Node keeps
  * its own reference until it closes.
- * Blocking: None.
  * Synchronization: Any thread, as long as the last release does not race any other use.
  * Returns: Nothing. MIMUSB_OK is recorded, or MIMUSB_ERR_PARAM for null (nothing is done). */
 MIMUSB_API void MIMUSB_CALL mimusb_spec_release(mimusb_spec* spec);
 
 /* mimusb_spec_descriptor
+ * The report descriptor of a Spec.
  * Ownership: The bytes belong to the Spec.
- * Blocking: None.
- * Synchronization: Any thread.
  * Returns: MIMUSB_OK; MIMUSB_ERR_PARAM for a null pointer. */
 MIMUSB_API mimusb_result MIMUSB_CALL mimusb_spec_descriptor(const mimusb_spec* spec,
                                                             const uint8_t** bytes, size_t* length);
 
 /* mimusb_spec_manifest
+ * What a Spec sends.
  * Ownership: Fills the caller's manifest; manifest->reports belongs to the Spec.
- * Blocking: None.
- * Synchronization: Any thread.
  * Returns: MIMUSB_OK; MIMUSB_ERR_PARAM for a null pointer, a wrong struct_size or a nonzero
  * reserved. */
 MIMUSB_API mimusb_result MIMUSB_CALL mimusb_spec_manifest(const mimusb_spec* spec,
@@ -2033,60 +1843,37 @@ MIMUSB_API mimusb_result MIMUSB_CALL mimusb_spec_manifest(const mimusb_spec* spe
 /* ---- Node ------------------------------------------------------------------------------- */
 
 /* mimusb_node_open
+ * Opens a Node of any class: spec says what it is, placement says where it goes. A HID Spec's Node
+ * gets the control rules HID 1.11 asks for and the events that follow from them
+ * (MIMUSB_EVENT_OUTPUT_REPORT, _FEATURE_REPORT, _SET_IDLE, _SET_PROTOCOL); a CDC-ACM Spec's Node
+ * gets its two interfaces and rules; a Spec of mimusb_spec_create_interfaces is opened as written.
+ * Checked without knowing the class: interface numbers, endpoint addresses, transfer types, packet
+ * sizes, intervals, policies, class descriptor lengths, the association and the totals against
+ * mimusb_board_limits. The details name the field and the offending number; docs/API.md has the
+ * full list.
  * Ownership: Copies placement and everything it points to; retains spec until the Node closes.
  * Blocking: As mimusb_device_commit: the whole configuration of the Device is sent and the board
- * enumerates again. Inside a batch the Node is only staged and committed with the batch.
- * Synchronization: Device domain.
- * Opens a Node of any class: spec says what it is (a HID profile Spec, or the interfaces of
- * mimusb_spec_create_interfaces), placement says where it goes. The call, its errors, its events
- * and its limits are the same for every Spec.
- * A HID Spec's Node is interface class 0x03 with the HID descriptor, one interrupt IN endpoint and
- * at most one interrupt OUT endpoint. The library writes the control rules that make it behave as
- * HID 1.11 asks (GET_DESCRIPTOR of the HID and report descriptors, GET_REPORT from the last report
- * sent and from mimusb_node_set_feature_response, SET_REPORT, GET/SET_IDLE and GET/SET_PROTOCOL)
- * and the events that follow from them (MIMUSB_EVENT_OUTPUT_REPORT, _FEATURE_REPORT,
- * _SET_IDLE, _SET_PROTOCOL). The profile calls (mimusb_keyboard_key, ...) and mimusb_node_submit
- * work on it. The rules for Nodes sharing an interface are in mimusb_node_placement.
- * A CDC-ACM Spec (mimusb_spec_create_cdc_acm) is opened as the two interfaces, class descriptors,
- * association and control rules its options describe, with the endpoints of its roles.
- * The placement's extra_rules go to any Node, before the Spec's rules.
- * A Spec made with mimusb_spec_create_interfaces is opened as its interfaces, endpoints, class
- * descriptors, optional association and control rules say. Nothing is read from class_code except
- * that 0 is unset. What the class does on endpoint 0 is in the Spec's rules: a request that no rule
- * of any Node or of the Device matches is stalled.
- * Checked without knowing the class: interface numbers (0, 1, 2, ... over all Nodes, no gap);
- * every endpoint address valid (USB 2.0 9.6.6), unique across the device, with a number the board's
- * controller has; transfer_type one the board has; max_packet_size within the board's
- * max_endpoint_bytes and, for bulk, one USB allows (8, 16, 32 or 64 at full speed, 512 at high
- * speed; USB 2.0 5.8.3); interval not 0 for an interrupt endpoint; a policy on every IN endpoint
- * and none on an OUT endpoint; the bLength of each class descriptor; the association; and the
- * totals against mimusb_board_limits. The details name the field and the offending number.
+ * enumerates again. Inside a batch the Node is only staged.
  * Returns: MIMUSB_OK; MIMUSB_ERR_PARAM for a null argument, a wrong struct_size, a bad value, a
- * role the Spec does not have or one given twice, a gap in the interface numbers
- * (mimusb_error_detail.offset is the missing number; nothing is sent), a repeated endpoint address
- * or interface number, Nodes sharing an interface that do not follow the rules of
- * mimusb_node_placement, an association that does not match the interfaces;
- * MIMUSB_ERR_UNSET_FIELD for a required field, a required role or a timeout left zero;
- * MIMUSB_ERR_UNSUPPORTED for a transfer type the board does not have (for a HID Spec: other than
- * interrupt); MIMUSB_ERR_OVERFLOW when a size, count or limit of the board is exceeded, or a HID
- * Spec exceeds maximum_report_bytes or a target.linux_hid limit; the results of
- * mimusb_device_commit. A HID Spec also needs every member of target.linux_hid
- * (MIMUSB_ERR_UNSET_FIELD when one is 0). */
+ * role the Spec does not have or one given twice, a gap or repeat in the interface numbers (the
+ * gap's number is in mimusb_error_detail.offset; nothing is sent), a repeated endpoint address,
+ * Nodes sharing an interface against the rules of mimusb_node_placement, or an association that
+ * does not match; MIMUSB_ERR_UNSET_FIELD for a required field, a required role or a timeout left
+ * zero (for a HID Spec, also a target.linux_hid member); MIMUSB_ERR_UNSUPPORTED for a transfer type
+ * the board does not have; MIMUSB_ERR_OVERFLOW when a limit of the board is exceeded; the results
+ * of mimusb_device_commit. */
 MIMUSB_API mimusb_result MIMUSB_CALL mimusb_node_open(mimusb_device* device, mimusb_spec* spec,
                                                       const mimusb_node_placement* placement,
                                                       const mimusb_commit_timeouts* timeouts,
                                                       mimusb_node** out_node);
 
 /* mimusb_node_close
+ * Closing a Node whose interface number is not the highest in use leaves a gap: the Node is gone,
+ * the commit fails with MIMUSB_ERR_PARAM, and a later commit succeeds once the gap is closed.
  * Ownership: Follows the "Closing" rule.
- * Blocking: Finishes a touch frame that has started and sends the neutral report (keys and
- * buttons up, contacts lifted, axes at rest) within drain_timeout_ms, then commits the remaining
- * Nodes as mimusb_node_open does; closing the last Node takes the USB device off the target.
- * Inside a batch it only stages the removal. A failed step does not stop the next one; after a
- * failed commit the target may still see the Node until a commit succeeds (mimusb_device_commit).
- * Closing a Node whose interface number is not the highest in use would leave a gap in the numbers:
- * the Node is gone, the commit fails with MIMUSB_ERR_PARAM, and a later commit succeeds once the
- * gap is closed (close the highest number first, or in a batch).
+ * Blocking: Sends the neutral report within drain_timeout_ms, then commits the remaining Nodes as
+ * mimusb_node_open does; closing the last Node takes the USB device off the target. Inside a batch
+ * it only stages the removal. A failed step does not stop the next one.
  * Synchronization: Device domain; not from the event sink.
  * Returns: MIMUSB_OK; MIMUSB_ERR_PARAM for a null or closed Node, a closing Device, or a wrong
  * timeouts struct_size; MIMUSB_ERR_UNSET_FIELD for a zero timeout; otherwise the first error on
@@ -2096,25 +1883,20 @@ MIMUSB_API mimusb_result MIMUSB_CALL mimusb_node_close(mimusb_node* node,
                                                        uint32_t drain_timeout_ms);
 
 /* mimusb_node_id
- * Ownership: Nothing.
- * Blocking: None.
- * Synchronization: Device domain.
+ * The number the board knows a Node by.
  * Returns: The number the board knows the Node by, plus one (so it is nonzero), with MIMUSB_OK
  * recorded; or 0 with MIMUSB_ERR_PARAM recorded for a null or closed Node. */
 MIMUSB_API uint16_t MIMUSB_CALL mimusb_node_id(const mimusb_node* node);
 
 /* mimusb_node_set_feature_response
+ * Sets what the board answers (the bytes after the Report ID, at most max_feature_bytes) when the
+ * target reads Feature report report_id of this Node.
  * Ownership: Copies data.
  * Blocking: Waits up to control_timeout_ms for the board's answer; inside a batch, or for a Node
  * not yet committed, it is sent with the commit instead.
  * Synchronization: Device domain; profile Nodes only.
- * Sets what the board answers (the bytes after the Report ID, at most the board's
- * max_feature_bytes; mimusb_device_limits) when the target reads Feature report report_id of this
- * Node: an ANSWER rule the library writes, whose bytes it changes in place when the length stays
- * and otherwise sends the table again. A touch Spec with
- * enable_contact_count_maximum_feature_declaration has its answer set already.
- * Returns: MIMUSB_OK; MIMUSB_ERR_PARAM for an invalid Node, null data with a nonzero length, or
- * more than max_feature_bytes, or a Node of a mimusb_spec_create_interfaces Spec;
+ * Returns: MIMUSB_OK; MIMUSB_ERR_PARAM for an invalid Node, null data with a nonzero length, more
+ * than max_feature_bytes, or a Node of a mimusb_spec_create_interfaces Spec;
  * MIMUSB_ERR_UNSET_FIELD for a zero timeout; MIMUSB_ERR_OVERFLOW when the board has no room for
  * the rule or its bytes; a link error. */
 MIMUSB_API mimusb_result MIMUSB_CALL mimusb_node_set_feature_response(mimusb_node* node,
@@ -2124,17 +1906,13 @@ MIMUSB_API mimusb_result MIMUSB_CALL mimusb_node_set_feature_response(mimusb_nod
                                                                       uint32_t control_timeout_ms);
 
 /* mimusb_node_endpoint_set_policy
+ * Changes what an IN endpoint does when its queue is full and how many transfers may wait. The
+ * change takes effect at once only if the queue cut at the last commit holds it; otherwise the
+ * board refuses it with MIMUSB_ERR_OVERFLOW (slot arithmetic: mimusb_board_limits). Nodes that
+ * share an interface share the least depth any of them set. It resets the endpoint's wait count.
  * Ownership: Copies policy.
- * Blocking: A command to the board, waiting up to control_timeout_ms for its answer; none inside a
- * batch or for a Node not yet committed: the policy is then sent with the commit.
- * Synchronization: Device domain.
- * Changes what an IN endpoint of the Node does when its queue is full, and how many transfers may
- * wait. The board cut the queue at the last commit: a change takes effect at once only if the
- * queue holds it (a queue of depth d needs d + 1 slots, or 2 * d + 1 for MIMUSB_FULL_DROP_OLDEST,
- * of the slots it was given), otherwise the board refuses it (MIMUSB_ERR_OVERFLOW) and nothing
- * changes; a commit cuts the queues anew. Nodes that share an interface share the least depth any
- * of them set. Changing a policy resets the wait
- * count of the endpoint (see mimusb_node_endpoint_write).
+ * Blocking: A command to the board, waiting up to control_timeout_ms; none inside a batch or for a
+ * Node not yet committed: the policy is then sent with the commit.
  * Returns: MIMUSB_OK; MIMUSB_ERR_PARAM for an invalid Node, a null policy, an address that is not
  * an IN endpoint of the Node or a bad on_full; MIMUSB_ERR_UNSET_FIELD for on_full or depth 0 or a
  * zero timeout; MIMUSB_ERR_OVERFLOW; a link error. */
@@ -2143,56 +1921,40 @@ mimusb_node_endpoint_set_policy(mimusb_node* node, uint8_t address,
                                 const mimusb_endpoint_policy* policy, uint32_t control_timeout_ms);
 
 /* mimusb_node_endpoint_write
+ * Sends data as one USB transfer on an IN endpoint of a Node. A length of 0 sends a zero-length
+ * packet (USB 2.0 5.8.3). A length above max_transfer_bytes is split into frames that are multiples
+ * of max_packet_size except the last; the library never adds a zero-length packet. Writes to one
+ * endpoint are in order. The wait policy and the wait count are described in docs/API.md.
  * Ownership: Copies data.
- * Blocking: With MIMUSB_FULL_WAIT, until the board has room for the transfer or timeout_ms has
- * passed; no lock of the Device is held while it waits, so the event sink and other calls run.
- * With the drop policies only until the serial driver has the frames (timeout_ms then bounds a
- * write that makes no progress, and 0 is accepted).
+ * Blocking: With MIMUSB_FULL_WAIT, until the board has room or timeout_ms has passed (required, 0
+ * is MIMUSB_ERR_UNSET_FIELD); no Device lock is held while it waits. With the drop policies only
+ * until the serial driver has the frames.
  * Synchronization: Device domain; writes to different endpoints may run at the same time.
- * Sends data as one USB transfer on an IN endpoint of a Node (a profile Node's own sends go through
- * the same path, so the wait policy applies to them too). A length
- * of 0 sends a zero-length packet (USB 2.0 5.8.3). A length above the board's max_transfer_bytes is
- * sent as several frames, each a multiple of the endpoint's max_packet_size except the last, so
- * the target sees the same transfer; the library never adds a zero-length packet: a caller whose
- * class ends a transfer of an exact multiple of the packet size with one sends it with a second
- * call of length 0. Writes to one endpoint are in order.
- * The wait policy: the library counts, per endpoint, the frames it has written minus those the
- * board reported finished, and a write blocks while that number equals the policy's depth. A
- * flush, a stall or clear of the endpoint, a change of its policy, an unmount (the target left)
- * and a commit set the count to zero and wake writers: a waiting write returns MIMUSB_ERR_BUSY
- * (MIMUSB_ERR_SHORT_TRANSFER when frames of a split write had gone). The count never goes below
- * zero. timeout_ms is required with the wait policy (MIMUSB_ERR_UNSET_FIELD when 0).
  * Returns: MIMUSB_OK; MIMUSB_ERR_PARAM for an invalid Node, an address that is not an IN endpoint
  * of the Node, or null data with a nonzero length; MIMUSB_ERR_UNSET_FIELD as above;
- * MIMUSB_ERR_TIMEOUT when timeout_ms passed with nothing of the write sent;
- * MIMUSB_ERR_SHORT_TRANSFER when it passed after some frames of a split write were sent;
- * MIMUSB_ERR_BUSY as above, also for a Node staged in a batch that has not ended or while the board
- * enumerates; MIMUSB_ERR_OVERFLOW for a transfer of more than 65535 frames; a link error. */
+ * MIMUSB_ERR_TIMEOUT when timeout_ms passed with nothing sent; MIMUSB_ERR_SHORT_TRANSFER when it
+ * passed after some frames of a split write; MIMUSB_ERR_BUSY when a flush, stall, policy change,
+ * unmount or commit reset the wait, for a Node staged in a batch, or while the board enumerates;
+ * MIMUSB_ERR_OVERFLOW for a transfer of more than 65535 frames; a link error. */
 MIMUSB_API mimusb_result MIMUSB_CALL mimusb_node_endpoint_write(mimusb_node* node, uint8_t address,
                                                                 const uint8_t* data, size_t length,
                                                                 uint32_t timeout_ms);
 
 /* mimusb_node_endpoint_stall
- * Ownership: Nothing.
+ * Sets the Halt feature of an endpoint of a Node (USB 2.0 9.4.5): the endpoint answers STALL until
+ * it is cleared by mimusb_node_endpoint_clear_stall or by the target. On an IN endpoint what waits
+ * on the board is dropped. It resets the wait count.
  * Blocking: A command to the board, waiting up to control_timeout_ms.
- * Synchronization: Device domain.
- * Sets the Halt feature of an endpoint of a Node (USB 2.0 9.4.5): the
- * endpoint answers STALL until it is cleared by mimusb_node_endpoint_clear_stall or by the target.
- * On an IN endpoint what waits on the board and the transfer being sent are dropped. This resets
- * the wait count.
  * Returns: MIMUSB_OK; MIMUSB_ERR_PARAM for an invalid Node or an address that is not an endpoint
  * of the Node; MIMUSB_ERR_UNSET_FIELD for a zero timeout; MIMUSB_ERR_BUSY when the board does not
- * run the configuration (the Node is staged, or the target has not configured the device); a link
- * error. */
+ * run the configuration; a link error. */
 MIMUSB_API mimusb_result MIMUSB_CALL mimusb_node_endpoint_stall(mimusb_node* node, uint8_t address,
                                                                 uint32_t control_timeout_ms);
 
 /* mimusb_node_endpoint_clear_stall
- * Ownership: Nothing.
- * Blocking: A command to the board, waiting up to control_timeout_ms.
- * Synchronization: Device domain.
  * As mimusb_node_endpoint_stall, clearing the Halt feature: an IN endpoint goes on with what
  * waits, an OUT endpoint accepts packets again. This resets the wait count.
+ * Blocking: A command to the board, waiting up to control_timeout_ms.
  * Returns: MIMUSB_OK; the errors of mimusb_node_endpoint_stall: MIMUSB_ERR_PARAM,
  * MIMUSB_ERR_UNSET_FIELD, MIMUSB_ERR_BUSY or a link error. */
 MIMUSB_API mimusb_result MIMUSB_CALL mimusb_node_endpoint_clear_stall(mimusb_node* node,
@@ -2200,11 +1962,9 @@ MIMUSB_API mimusb_result MIMUSB_CALL mimusb_node_endpoint_clear_stall(mimusb_nod
                                                                       uint32_t control_timeout_ms);
 
 /* mimusb_node_endpoint_flush
- * Ownership: Nothing.
- * Blocking: A command to the board, waiting up to control_timeout_ms.
- * Synchronization: Device domain.
  * Drops what waits on an IN endpoint of the board; a transfer the board's controller already has
  * completes. This resets the wait count.
+ * Blocking: A command to the board, waiting up to control_timeout_ms.
  * Returns: MIMUSB_OK; MIMUSB_ERR_PARAM for an invalid Node, an address that is not an IN endpoint
  * of the Node (an OUT endpoint too); MIMUSB_ERR_UNSET_FIELD for a zero timeout; MIMUSB_ERR_BUSY
  * when the board does not run the configuration; a link error. */
@@ -2212,20 +1972,19 @@ MIMUSB_API mimusb_result MIMUSB_CALL mimusb_node_endpoint_flush(mimusb_node* nod
                                                                 uint32_t control_timeout_ms);
 
 /* mimusb_node_manifest
+ * What a Node sends.
  * Ownership: As mimusb_spec_manifest; manifest->reports is valid while the Node is open.
- * Blocking: None.
- * Synchronization: Device domain.
  * Returns: MIMUSB_OK; MIMUSB_ERR_PARAM for a null pointer, a wrong struct_size or a nonzero
  * reserved. */
 MIMUSB_API mimusb_result MIMUSB_CALL mimusb_node_manifest(const mimusb_node* node,
                                                           mimusb_capability_manifest* manifest);
 
 /* mimusb_node_submit
+ * Sends the Node's current state as a report.
  * Ownership: The report is built in the library's own buffer.
- * Blocking: Writes one report of the Node's current state, if it changed, to the serial port and
- * returns once the driver has it (microseconds on an idle port). It never waits for the target;
- * send_timeout_ms only bounds a write that makes no progress.
- * Synchronization: Device domain.
+ * Blocking: Writes one report of the Node's current state, if it changed, and returns once the
+ * serial driver has it. It never waits for the target; send_timeout_ms only bounds a write that
+ * makes no progress.
  * Returns: MIMUSB_OK, also when there was nothing to send; MIMUSB_ERR_PARAM for an invalid Node;
  * MIMUSB_ERR_UNSET_FIELD for a zero timeout; MIMUSB_ERR_UNSUPPORTED for a generic HID Node (use
  * mimusb_hid_submit); MIMUSB_ERR_BUSY for a Node opened in a batch that has not ended, while the
@@ -2234,11 +1993,11 @@ MIMUSB_API mimusb_result MIMUSB_CALL mimusb_node_submit(mimusb_node* node,
                                                         uint32_t send_timeout_ms);
 
 /* mimusb_node_submit_blocking
+ * Sends reports until the Node's state has been sent.
  * Ownership: As mimusb_node_submit.
  * Blocking: Writes reports until the Node's state has been sent, a touch frame of several reports
  * and a mouse's pending movement included, or timeout_ms has passed; each write is bounded by what
  * is left of it.
- * Synchronization: Device domain.
  * Returns: MIMUSB_OK; MIMUSB_ERR_TIMEOUT when timeout_ms passed first; the results of
  * mimusb_node_submit. */
 MIMUSB_API mimusb_result MIMUSB_CALL mimusb_node_submit_blocking(mimusb_node* node,
@@ -2256,9 +2015,6 @@ MIMUSB_API mimusb_result MIMUSB_CALL mimusb_node_submit_blocking(mimusb_node* no
  *   MIMUSB_ERR_NO_DEVICE once the link is gone; the call's own results listed with it. */
 
 /* mimusb_keyboard_key
- * Ownership: Nothing.
- * Blocking: None.
- * Synchronization: Device domain.
  * Presses (down 1) or releases (down 0) one Keyboard page Usage, a modifier or a key of the Spec's
  * range. Closing the Node releases every key still down.
  * Returns: As every input call, MIMUSB_OK through MIMUSB_ERR_NO_DEVICE. */
@@ -2266,9 +2022,6 @@ MIMUSB_API mimusb_result MIMUSB_CALL mimusb_keyboard_key(mimusb_node* node, uint
                                                          uint32_t down);
 
 /* mimusb_mouse_move
- * Ownership: Nothing.
- * Blocking: None.
- * Synchronization: Device domain.
  * Adds to the pending X and Y movement. A report carries as much as the fields hold and keeps the
  * rest for the next one.
  * Returns: As every input call, MIMUSB_OK through MIMUSB_ERR_NO_DEVICE; MIMUSB_ERR_OVERFLOW when
@@ -2276,9 +2029,6 @@ MIMUSB_API mimusb_result MIMUSB_CALL mimusb_keyboard_key(mimusb_node* node, uint
 MIMUSB_API mimusb_result MIMUSB_CALL mimusb_mouse_move(mimusb_node* node, int32_t dx, int32_t dy);
 
 /* mimusb_mouse_scroll
- * Ownership: Nothing.
- * Blocking: None.
- * Synchronization: Device domain.
  * Adds to the pending wheel and pan movement, as mimusb_mouse_move does.
  * Returns: As every input call, MIMUSB_OK through MIMUSB_ERR_NO_DEVICE; MIMUSB_ERR_UNSUPPORTED
  * for a nonzero value on a field the Spec lacks; MIMUSB_ERR_OVERFLOW when the 64-bit pending total
@@ -2287,18 +2037,12 @@ MIMUSB_API mimusb_result MIMUSB_CALL mimusb_mouse_scroll(mimusb_node* node, int3
                                                          int32_t pan);
 
 /* mimusb_mouse_button
- * Ownership: Nothing.
- * Blocking: None.
- * Synchronization: Device domain.
  * Presses (down 1) or releases (down 0) button 1 to button_count.
  * Returns: As every input call, MIMUSB_OK through MIMUSB_ERR_NO_DEVICE. */
 MIMUSB_API mimusb_result MIMUSB_CALL mimusb_mouse_button(mimusb_node* node, uint32_t button,
                                                          uint32_t down);
 
 /* mimusb_toggle_usage
- * Ownership: Nothing.
- * Blocking: None.
- * Synchronization: Device domain.
  * Presses (down 1) or releases (down 0) one Usage of the Spec's allow-list; any number may be
  * pressed at once. Closing the Node releases every Usage still down.
  * Returns: As every input call, MIMUSB_OK through MIMUSB_ERR_NO_DEVICE. */
@@ -2306,27 +2050,18 @@ MIMUSB_API mimusb_result MIMUSB_CALL mimusb_toggle_usage(mimusb_node* node, uint
                                                          uint32_t down);
 
 /* mimusb_gamepad_button
- * Ownership: Nothing.
- * Blocking: None.
- * Synchronization: Device domain.
  * Presses (down 1) or releases (down 0) button 1 to button_count.
  * Returns: As every input call, MIMUSB_OK through MIMUSB_ERR_NO_DEVICE. */
 MIMUSB_API mimusb_result MIMUSB_CALL mimusb_gamepad_button(mimusb_node* node, uint32_t button,
                                                            uint32_t down);
 
 /* mimusb_gamepad_axis
- * Ownership: Nothing.
- * Blocking: None.
- * Synchronization: Device domain.
  * Sets axes[axis_index] of the Spec to value, which must be in its logical range.
  * Returns: As every input call, MIMUSB_OK through MIMUSB_ERR_NO_DEVICE. */
 MIMUSB_API mimusb_result MIMUSB_CALL mimusb_gamepad_axis(mimusb_node* node, size_t axis_index,
                                                          int32_t value);
 
 /* mimusb_gamepad_dpad
- * Ownership: Nothing.
- * Blocking: None.
- * Synchronization: Device domain.
  * Sets the D-pad from four 0/1 directions. With a Hat, up and down (or left and right) together
  * are refused and no direction sends the Null state; with four buttons the bits go out as given.
  * Returns: As every input call, MIMUSB_OK through MIMUSB_ERR_NO_DEVICE; MIMUSB_ERR_PARAM also
@@ -2336,63 +2071,51 @@ MIMUSB_API mimusb_result MIMUSB_CALL mimusb_gamepad_dpad(mimusb_node* node, uint
                                                          uint32_t left);
 
 /* mimusb_touchscreen_contact
+ * down 1 places contact_id in a free slot, or moves it if already down; down 0 lifts it at x, y.
+ * A lifted contact_id can be placed again once its lift has been sent.
  * Ownership: Copies extra, which may be null (every optional field 0).
- * Blocking: None.
  * Synchronization: Device domain.
- * down 1 places contact_id in a free slot, or moves it if it is already down; down 0 lifts it at
- * x, y. A lifted contact_id can be placed again once its lift has been sent. While a frame split
- * over several reports is being sent, every call is refused with MIMUSB_ERR_BUSY.
  * Returns: As every input call, MIMUSB_OK through MIMUSB_ERR_NO_DEVICE; MIMUSB_ERR_PARAM also for
- * lifting a contact_id that is not down; MIMUSB_ERR_BUSY also for placing one whose lift is
- * unsent; MIMUSB_ERR_OVERFLOW when every slot is taken. */
+ * lifting a contact_id that is not down; MIMUSB_ERR_BUSY also for placing one whose lift is unsent
+ * or while a split frame is being sent; MIMUSB_ERR_OVERFLOW when every slot is taken. */
 MIMUSB_API mimusb_result MIMUSB_CALL
 mimusb_touchscreen_contact(mimusb_node* node, uint32_t contact_id, uint32_t down, int32_t x,
                            int32_t y, const mimusb_touchscreen_extra* extra);
 
 /* mimusb_touchpad_contact
- * Ownership: Copies extra, which may be null.
- * Blocking: None.
- * Synchronization: Device domain.
  * As mimusb_touchscreen_contact, for a Touchpad Node.
+ * Ownership: Copies extra, which may be null.
+ * Synchronization: Device domain.
  * Returns: As mimusb_touchscreen_contact, MIMUSB_OK through MIMUSB_ERR_OVERFLOW. */
 MIMUSB_API mimusb_result MIMUSB_CALL mimusb_touchpad_contact(mimusb_node* node, uint32_t contact_id,
                                                              uint32_t down, int32_t x, int32_t y,
                                                              const mimusb_touchpad_extra* extra);
 
 /* mimusb_touchpad_button
- * Ownership: Nothing.
- * Blocking: None.
- * Synchronization: Device domain.
  * Presses (down 1) or releases (down 0) click button 1 to button_count.
+ * Synchronization: Device domain.
  * Returns: As every input call, MIMUSB_OK through MIMUSB_ERR_NO_DEVICE. */
 MIMUSB_API mimusb_result MIMUSB_CALL mimusb_touchpad_button(mimusb_node* node, uint32_t button,
                                                             uint32_t down);
 
 /* mimusb_pen_update
- * Ownership: Copies sample.
- * Blocking: None.
- * Synchronization: Device domain.
  * Sets the whole pen state. in_range 0 takes the pen away: In Range, Tip, pressure, Invert and the
  * barrel bits go out as 0 with the sample's own X, Y, tilt and twist, so repeat the last position
  * to leave the pointer where it was. Switching between tip and eraser while in range first sends
  * an out-of-range report.
+ * Ownership: Copies sample.
  * Returns: As every input call, MIMUSB_OK through MIMUSB_ERR_NO_DEVICE. */
 MIMUSB_API mimusb_result MIMUSB_CALL mimusb_pen_update(mimusb_node* node,
                                                        const mimusb_pen_sample* sample);
 
 /* mimusb_digitizer_update
- * Ownership: Copies sample.
- * Blocking: None.
- * Synchronization: Device domain.
  * As mimusb_pen_update, for a Digitizer Node.
+ * Ownership: Copies sample.
  * Returns: As every input call, MIMUSB_OK through MIMUSB_ERR_NO_DEVICE. */
 MIMUSB_API mimusb_result MIMUSB_CALL mimusb_digitizer_update(mimusb_node* node,
                                                              const mimusb_digitizer_sample* sample);
 
 /* mimusb_battery_update
- * Ownership: Nothing.
- * Blocking: None.
- * Synchronization: Device domain.
  * Sets the battery level of a Node whose Spec has enable_battery. It goes out with the next
  * mimusb_node_submit that has no input report to send, and only when it changed. A level not yet
  * sent is dropped on close.
@@ -2403,10 +2126,9 @@ MIMUSB_API mimusb_result MIMUSB_CALL mimusb_battery_update(mimusb_node* node, in
 /* ---- Reports of the caller's own -------------------------------------------------------- */
 
 /* mimusb_hid_submit
+ * Sends one report of a HID Spec's Node after checking it against the Spec's report table.
  * Ownership: Copies report.
  * Blocking: As mimusb_node_submit.
- * Synchronization: Device domain.
- * Sends one report of a HID Spec's Node after checking it against the Spec's report table.
  * Returns: MIMUSB_OK; MIMUSB_ERR_PARAM for a Node that is not a HID Spec, a null report, a Report
  * ID or length the Spec does not accept, or nonzero padding bits; MIMUSB_ERR_UNSET_FIELD for a zero
  * timeout; MIMUSB_ERR_BUSY as for mimusb_node_submit; MIMUSB_ERR_OVERFLOW for a report longer than

@@ -276,7 +276,7 @@ mimusb_result mimusb_discover(uint32_t timeout_ms, mimusb_discovery** out_discov
 ```
 
 - **Ownership:** The caller destroys the snapshot with `mimusb_discovery_destroy`.
-- **Blocking:** Searches every USB serial port at once, one thread each, waiting up to timeout_ms for each answer; a port another program has open is skipped. On each port it pings at the boot rate and, when nothing answers, sends a BREAK (which returns a board a program left on a fast rate to the boot rate) and pings again, so a serial device that is not a board receives a few pings and a BREAK. On a board it measures the fastest rate the link carries: from the board's max_baud downward, it sends bursts of test frames and trusts a rate only when the board's own error counters stay at zero (baud_rate), and it leaves the board on the boot rate. The search takes a few seconds at most. A board whose firmware has another major or minor version is listed with only its version and firmware_compatible 0, so that it can be flashed again.
+- **Blocking:** Searches every USB serial port at once, one thread each, waiting up to timeout_ms for each answer; a port another program has open is skipped. On each port it pings at the boot rate and, when nothing answers, sends a BREAK (which returns a board a program left on a fast rate to the boot rate) and pings again, so a serial device that is not a board receives a few pings and a BREAK. On a board it measures the fastest rate the link carries: from the board's max_baud downward, it sends bursts of test frames and trusts a rate only when the board's own error counters stay at zero (baud_rate), and it leaves the board on the boot rate. A board whose firmware has another major or minor version is listed with only its version and firmware_compatible 0, so that it can be flashed again.
 - **Synchronization:** Any thread.
 - **Returns:** `MIMUSB_OK`, also when no board was found; `MIMUSB_ERR_PARAM` for a null out_discovery; `MIMUSB_ERR_UNSET_FIELD` for a zero timeout.
 
@@ -322,7 +322,7 @@ mimusb_result mimusb_device_open(const char* port_path, const mimusb_device_conf
 ```
 
 - **Ownership:** Copies config; the caller closes the Device with `mimusb_device_close`.
-- **Blocking:** Opens port_path (such as "/dev/ttyACM0" or "COM3") for this process alone, looks for the board at the boot rate (and after a BREAK, for one left on a fast rate; waiting transport.handshake_timeout_ms for each answer), reads its limits, moves the link to transport.baud_rate and checks it with a short burst of test frames (`MIMUSB_BAUD_FASTEST` measures instead, which takes up to a few seconds), and starts the reader thread. It sends no configuration: the board's USB device stays off the target until a Node is opened.
+- **Blocking:** Opens port_path (such as "/dev/ttyACM0" or "COM3") for this process alone, looks for the board at the boot rate (and after a BREAK, for one left on a fast rate; waiting transport.handshake_timeout_ms for each answer), reads its limits, moves the link to transport.baud_rate and checks it with a short burst of test frames (`MIMUSB_BAUD_FASTEST` measures instead), and starts the reader thread. It sends no configuration: the board's USB device stays off the target until a Node is opened.
 - **Synchronization:** Any thread, one call per port.
 - **Returns:** `MIMUSB_OK`; `MIMUSB_ERR_PARAM` for a null pointer, a wrong struct_size or a bad value; `MIMUSB_ERR_UNSET_FIELD` for a required field left zero; `MIMUSB_ERR_UNSUPPORTED` for a rate the board cannot make, or one the adapter or wiring did not carry; `MIMUSB_ERR_OVERFLOW` for a maximum_report_bytes the board does not take; `MIMUSB_ERR_TIMEOUT` when no board answered; `MIMUSB_ERR_PROTOCOL` for firmware of another major or minor version; `MIMUSB_ERR_ACCESS` for a port that cannot be opened (it does not exist, the permission is missing, or another program has it); `MIMUSB_ERR_IO` for a port that cannot be set up.
 
@@ -489,7 +489,7 @@ mimusb_result mimusb_device_link_counters(mimusb_device* device, uint32_t reset,
 - **Ownership:** Fills the caller's out_counters (set its struct_size; `mimusb_link_counters_init` does).
 - **Blocking:** One command to the board, waiting up to control_timeout_ms for its answer.
 - **Synchronization:** Device domain.
-- **Returns:** `MIMUSB_OK`; `MIMUSB_ERR_PARAM` for an invalid Device, a null out_counters or a wrong struct_size; `MIMUSB_ERR_UNSET_FIELD` for a zero timeout; `MIMUSB_ERR_TIMEOUT` or `MIMUSB_ERR_IO` when the board did not answer. With reset nonzero the board's counters are zeroed after being read: a program that wants to see a link degrade reads them now and then. Any lost byte shows there, not in the report stream.
+- **Returns:** `MIMUSB_OK`; `MIMUSB_ERR_PARAM` for an invalid Device, a null out_counters or a wrong struct_size; `MIMUSB_ERR_UNSET_FIELD` for a zero timeout; `MIMUSB_ERR_TIMEOUT` or `MIMUSB_ERR_IO` when the board did not answer. With reset nonzero the board's counters are zeroed after being read.
 
 ### Control transfers of the target (endpoint 0)
 
@@ -537,7 +537,13 @@ mimusb_result mimusb_device_control_reply(mimusb_device* device, uint32_t token,
 
 - **Ownership:** Copies data.
 - **Blocking:** Writes one frame, for up to send_timeout_ms without progress; it does not wait for the board.
-- **Synchronization:** Device domain, and also from the event sink, which is the way to answer in time. Answers the held transfer of token (from `MIMUSB_EVENT_CONTROL_SETUP`, or from `MIMUSB_EVENT_CONTROL_DATA` for the verdict of a host-to-device transfer): - ANSWER to a device-to-host request: data is the data stage, sent whole whatever wLength says. More than wLength makes the host report an overrun; data with wLength 0 still starts a data stage, which is how a device that does so is copied. Empty data is an empty data stage. - ANSWER to any other request: data must be empty. With a host-to-device data stage the board takes the data, reports it as `MIMUSB_EVENT_CONTROL_DATA` and waits for the verdict: ANSWER (acknowledge), STALL, or the rule's when_late. - STALL, DROP: data must be empty. - LEAVE: the board's own handling; as a verdict it acknowledges. A reply the board no longer waits for (too late, or the target gave up) is dropped.
+- **Synchronization:** Device domain, and also from the event sink, which is the way to answer in time. Answers the held transfer of token (from `MIMUSB_EVENT_CONTROL_SETUP`, or from `MIMUSB_EVENT_CONTROL_DATA` for the verdict of a host-to-device transfer):
+
+  - ANSWER to a device-to-host request: data is the data stage, sent whole whatever wLength says. More than wLength makes the host report an overrun; data with wLength 0 still starts a data stage, which is how a device that does so is copied. Empty data is an empty data stage.
+  - ANSWER to any other request: data must be empty. With a host-to-device data stage the board takes the data, reports it as `MIMUSB_EVENT_CONTROL_DATA` and waits for the verdict: ANSWER (acknowledge), STALL, or the rule's when_late.
+  - STALL, DROP: data must be empty.
+  - LEAVE: the board's own handling; as a verdict it acknowledges.
+  A reply the board no longer waits for (too late, or the target gave up) is dropped.
 - **Returns:** `MIMUSB_OK` once the frame is written; `MIMUSB_ERR_PARAM` for an invalid Device, a token of 0 or above 255, an unknown action, or data with an action that takes none; `MIMUSB_ERR_UNSET_FIELD` for a zero timeout; `MIMUSB_ERR_OVERFLOW` for data longer than max_control_data_bytes; a link error.
 
 #### `mimusb_device_set_loss_reporting`
@@ -907,7 +913,7 @@ mimusb_result mimusb_node_submit(mimusb_node* node, uint32_t send_timeout_ms);
 ```
 
 - **Ownership:** The report is built in the library's own buffer.
-- **Blocking:** Writes one report of the Node's current state, if it changed, to the serial port and returns once the driver has it (microseconds on an idle port). It never waits for the target; send_timeout_ms only bounds a write that makes no progress.
+- **Blocking:** Writes one report of the Node's current state, if it changed, to the serial port and returns once the driver has it. It never waits for the target; send_timeout_ms only bounds a write that makes no progress.
 - **Synchronization:** Device domain.
 - **Returns:** `MIMUSB_OK`, also when there was nothing to send; `MIMUSB_ERR_PARAM` for an invalid Node; `MIMUSB_ERR_UNSET_FIELD` for a zero timeout; `MIMUSB_ERR_UNSUPPORTED` for a generic HID Node (use `mimusb_hid_submit`); `MIMUSB_ERR_BUSY` for a Node opened in a batch that has not ended, while the board enumerates, or while a report of the Node is being sent; a link error.
 
