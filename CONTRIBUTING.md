@@ -60,3 +60,7 @@ caller-controlled. Preserve deterministic latency and minimal resource usage:
    cmake --build build_sim && ctest --test-dir build_sim -R sim
    ```
 7. Submit pull requests with concise descriptions and test verification evidence.
+
+## Code of Conduct
+
+Everyone taking part is expected to follow the [Code of Conduct](CODE_OF_CONDUCT.md).

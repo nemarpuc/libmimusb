@@ -2,9 +2,10 @@
 
 ## Supported Versions
 
-| Version | Supported          |
-| :------ | :----------------- |
-| 0.2.x   | :white_check_mark: |
+Only the [latest release](https://github.com/nemarpuc/libmimusb/releases/latest)
+receives security fixes. Before 1.0.0 a fix may come with a change of the
+minor number. The board must run the firmware of the same minor version as the
+host library.
 
 ## Reporting Vulnerabilities
 
