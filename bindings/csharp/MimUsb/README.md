@@ -8,9 +8,10 @@ matching libmimusb shared distribution separately and make it available to the
 The NuGet package version and native libmimusb version must match. Complete
 native archives, dependency notices, and SPDX documents are published with the
 corresponding GitHub Release. The C header's `*_init` functions are inline and
-not part of the binary ABI, so a structure starts all zero: set its
-`StructSize` and every required field yourself. A required field left zero is
-refused with `Result.UnsetField`.
+not part of the binary ABI. `DeviceConfig.Init()` (and the same method of every
+structure that has `StructSize`) returns a zeroed structure with `StructSize`
+set; set every required field yourself. A required field left zero is refused
+with `Result.UnsetField`.
 
 ## Callback lifetime
 
@@ -25,3 +26,9 @@ Functions that take a pointer to a structure have two forms: one with `in` or
 `ref` for the common case, and one taking `nint` where `null` is allowed
 (`nint.Zero`). The declarations are generated from `include/mimusb.h` by
 `tools/bindings/generate.py`; do not edit `Native.cs` by hand.
+
+## Failed calls
+
+`MimUsbException.Check(result)` does nothing for `Result.Ok` and otherwise throws
+with the result and the `Field` and `Reason` of the library's last error. Call
+it right after the call that returned `result`.

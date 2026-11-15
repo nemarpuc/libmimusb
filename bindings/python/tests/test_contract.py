@@ -18,13 +18,15 @@ def test_package_exports_only_the_binding_surface():
     assert not hasattr(mimusb, "Union")
 
 
-def test_a_new_option_structure_is_all_zero():
-    # struct_size and every choice are the caller's; the binding fills nothing.
+def test_a_new_option_structure_has_only_struct_size_set():
+    # struct_size is the structure's size, as the C *_init sets it; every choice is the caller's.
     for structure in (KeyboardOptions, DeviceConfig):
         instance = structure()
+        assert instance.struct_size == native.c.sizeof(structure)
         for name, *_ in structure._fields_:
             value = getattr(instance, name)
-            assert not isinstance(value, int) or value == 0, name
+            assert name == "struct_size" or not isinstance(value, int) or value == 0, name
+        assert structure(struct_size=7).struct_size == 7
 
 
 def test_device_config_exposes_the_serial_and_usb_choices():
@@ -39,5 +41,5 @@ def test_device_config_exposes_the_serial_and_usb_choices():
 
 if __name__ == "__main__":
     test_package_exports_only_the_binding_surface()
-    test_a_new_option_structure_is_all_zero()
+    test_a_new_option_structure_has_only_struct_size_set()
     test_device_config_exposes_the_serial_and_usb_choices()

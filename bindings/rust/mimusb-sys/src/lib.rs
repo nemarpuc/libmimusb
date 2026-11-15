@@ -149,6 +149,7 @@ pub const MIMUSB_ITEM_DESCRIPTOR: i32 = 2;
 
 pub type mimusb_log_sink = Option<unsafe extern "C" fn(a: *mut c_void, b: mimusb_log_level, c: *const c_char)>;
 
+/// The details of the calling thread's last result.
 #[repr(C)]
 pub struct mimusb_error_detail {
     pub code: mimusb_result,
@@ -179,6 +180,7 @@ pub struct mimusb_event {
 }
 pub type mimusb_event_sink = Option<unsafe extern "C" fn(a: *mut c_void, b: *const mimusb_event)>;
 
+/// A board found by mimusb_discover, or the one a Device has open.
 #[repr(C)]
 pub struct mimusb_device_info {
     pub port_name: [c_char; 64],
@@ -203,6 +205,7 @@ pub struct mimusb_device_info {
     pub reserved_end: [u8; 3],
 }
 
+/// What the board holds, in bytes: 64-byte endpoint packets on a full-speed chip, 1024 on a high-speed one.
 #[repr(C)]
 pub struct mimusb_board_limits {
     pub struct_size: u32,
@@ -224,6 +227,7 @@ pub struct mimusb_board_limits {
     pub max_bos_bytes: u32,
 }
 
+/// What the board counted on its serial line since the last reset, each saturating at 65535.
 #[repr(C)]
 pub struct mimusb_link_counters {
     pub struct_size: u32,
@@ -235,6 +239,7 @@ pub struct mimusb_link_counters {
     pub probes_good: u32,
 }
 
+/// The Device descriptor and its strings.
 #[repr(C)]
 pub struct mimusb_usb_device {
     pub bcd_usb: u16,
@@ -252,6 +257,7 @@ pub struct mimusb_usb_device {
     pub serial_from_chip_id: u32,
 }
 
+/// The Configuration descriptor.
 #[repr(C)]
 pub struct mimusb_usb_config {
     pub configuration_value: u8,
@@ -261,6 +267,7 @@ pub struct mimusb_usb_config {
     pub string: *const c_char,
 }
 
+/// The Linux HID parser limits of the target (docs/LIMITS.md).
 #[repr(C)]
 pub struct mimusb_linux_hid_policy {
     pub descriptor_bytes: u32,
@@ -271,11 +278,13 @@ pub struct mimusb_linux_hid_policy {
     pub report_data_bits: u64,
 }
 
+/// What the target machine limits, whatever the function: one member for each kind of target limit a Spec can exceed.
 #[repr(C)]
 pub struct mimusb_target_limits {
     pub linux_hid: mimusb_linux_hid_policy,
 }
 
+/// The serial link and what the library does on it.
 #[repr(C)]
 pub struct mimusb_transport_options {
     pub baud_rate: u32,
@@ -300,6 +309,7 @@ pub struct mimusb_device_config {
     pub usb_config: mimusb_usb_config,
 }
 
+/// The waits of a call that configures the board and enumerates its USB device again (a commit).
 #[repr(C)]
 pub struct mimusb_commit_timeouts {
     pub struct_size: u32,
@@ -314,6 +324,7 @@ pub struct mimusb_endpoint_policy {
     pub depth: u8,
 }
 
+/// One endpoint of a setting (USB 2.0 9.6.6).
 #[repr(C)]
 pub struct mimusb_usb_endpoint {
     pub address: u8,
@@ -328,6 +339,7 @@ pub struct mimusb_usb_endpoint {
     pub policy: mimusb_endpoint_policy,
 }
 
+/// A request matches when (field & mask) == value for each of the four fields; a mask of 0 matches anything.
 #[repr(C)]
 pub struct mimusb_control_rule {
     pub request_type_mask: u8,
@@ -349,6 +361,7 @@ pub struct mimusb_control_rule {
     pub when_late: mimusb_control_action,
 }
 
+/// One item.
 #[repr(C)]
 pub struct mimusb_usb_item {
     pub kind: u32,
@@ -358,12 +371,14 @@ pub struct mimusb_usb_item {
     pub descriptor_length: usize,
 }
 
+/// One alternate setting of an interface (USB 2.0 9.6.5): the Interface descriptor with its bAlternateSetting, then the items in order.
 #[repr(C)]
 pub struct mimusb_usb_setting {
     pub items: *const mimusb_usb_item,
     pub item_count: usize,
 }
 
+/// One interface of a Node, as the target sees it (USB 2.0 9.6.5).
 #[repr(C)]
 pub struct mimusb_usb_interface {
     pub number: u8,
@@ -375,6 +390,7 @@ pub struct mimusb_usb_interface {
     pub setting_count: usize,
 }
 
+/// The interfaces of one Node.
 #[repr(C)]
 pub struct mimusb_node_config {
     pub struct_size: u32,
@@ -387,12 +403,14 @@ pub struct mimusb_node_config {
     pub rule_count: usize,
 }
 
+/// One role of a Spec and whether the placement must give it.
 #[repr(C)]
 pub struct mimusb_role_info {
     pub role: mimusb_endpoint_role,
     pub required: u32,
 }
 
+/// The endpoint the caller puts in one role of a Spec.
 #[repr(C)]
 pub struct mimusb_placed_endpoint {
     pub role: mimusb_endpoint_role,
@@ -400,6 +418,7 @@ pub struct mimusb_placed_endpoint {
     pub endpoint: mimusb_usb_endpoint,
 }
 
+/// Where a Node goes: the bus numbers, the endpoints of its roles and the Node's own control rules (mimusb_node_open).
 #[repr(C)]
 pub struct mimusb_node_placement {
     pub struct_size: u32,
@@ -413,6 +432,7 @@ pub struct mimusb_node_placement {
     pub extra_rule_count: usize,
 }
 
+/// The HID function a Spec describes (HID 1.11 6.2.1, 4.2, 4.3): what the HID descriptor and the Interface descriptor of the Node say.
 #[repr(C)]
 pub struct mimusb_hid_function {
     pub bcd_hid: u16,
@@ -422,6 +442,7 @@ pub struct mimusb_hid_function {
     pub reserved8: [u8; 3],
 }
 
+/// A whole USB device as the bytes the target reads (mimusb_device_set_descriptors), to present a copy of a real device.
 #[repr(C)]
 pub struct mimusb_device_descriptors {
     pub struct_size: u32,
@@ -434,6 +455,7 @@ pub struct mimusb_device_descriptors {
     pub bos_length: usize,
 }
 
+/// The four HID 1.11 physical Global items for one field.
 #[repr(C)]
 pub struct mimusb_physical_properties {
     pub enabled: u32,
@@ -443,6 +465,7 @@ pub struct mimusb_physical_properties {
     pub unit: u32,
 }
 
+/// One report field.
 #[repr(C)]
 pub struct mimusb_integer_field {
     pub logical_minimum: i32,
@@ -451,6 +474,7 @@ pub struct mimusb_integer_field {
     pub physical: mimusb_physical_properties,
 }
 
+/// With enabled 1, every report starts with value (1 to 255).
 #[repr(C)]
 pub struct mimusb_report_id_option {
     pub enabled: u32,
@@ -458,12 +482,14 @@ pub struct mimusb_report_id_option {
     pub reserved8: [u8; 3],
 }
 
+/// Battery Strength (Generic Device Controls 0x06/0x20) as a second Input report in the profile's Application Collection.
 #[repr(C)]
 pub struct mimusb_battery_report {
     pub report_id: mimusb_report_id_option,
     pub strength: mimusb_integer_field,
 }
 
+/// Full N-key rollover: one bit per Usage from usage_minimum (at least 0x04) to usage_maximum, plus the eight modifiers 0xE0 to 0xE7, which the range must not include.
 #[repr(C)]
 pub struct mimusb_keyboard_options {
     pub struct_size: u32,
@@ -476,6 +502,7 @@ pub struct mimusb_keyboard_options {
     pub function: mimusb_hid_function,
 }
 
+/// X, Y, wheel and pan are relative; their ranges must hold negative and positive values.
 #[repr(C)]
 pub struct mimusb_mouse_options {
     pub struct_size: u32,
@@ -493,6 +520,7 @@ pub struct mimusb_mouse_options {
     pub function: mimusb_hid_function,
 }
 
+/// One-bit controls on any HUT page: Consumer, System Control, Camera Control, Telephony, ...
 #[repr(C)]
 pub struct mimusb_toggle_options {
     pub struct_size: u32,
@@ -512,6 +540,7 @@ pub struct mimusb_toggle_options {
     pub function: mimusb_hid_function,
 }
 
+/// One axis.
 #[repr(C)]
 pub struct mimusb_gamepad_axis_option {
     pub role: mimusb_axis_role,
@@ -522,6 +551,7 @@ pub struct mimusb_gamepad_axis_option {
     pub expected_linux_code: *const c_char,
 }
 
+/// At least two axes, one of them MIMUSB_AXIS_X and one MIMUSB_AXIS_Y, each role once.
 #[repr(C)]
 pub struct mimusb_gamepad_options {
     pub struct_size: u32,
@@ -540,6 +570,7 @@ pub struct mimusb_gamepad_options {
     pub function: mimusb_hid_function,
 }
 
+/// Fixed-slot Multi-Touch under the Digitizers / Touch Screen Application Collection.
 #[repr(C)]
 pub struct mimusb_touchscreen_options {
     pub struct_size: u32,
@@ -569,6 +600,7 @@ pub struct mimusb_touchscreen_options {
     pub function: mimusb_hid_function,
 }
 
+/// The touchscreen report under the Digitizers / Touch Pad Application Collection, plus button_count click buttons (0 for a buttonless clickpad).
 #[repr(C)]
 pub struct mimusb_touchpad_options {
     pub struct_size: u32,
@@ -599,6 +631,7 @@ pub struct mimusb_touchpad_options {
     pub function: mimusb_hid_function,
 }
 
+/// A stylus under the Digitizers / Pen Application Collection (a direct, on-screen pen).
 #[repr(C)]
 pub struct mimusb_pen_options {
     pub struct_size: u32,
@@ -622,6 +655,7 @@ pub struct mimusb_pen_options {
     pub function: mimusb_hid_function,
 }
 
+/// The pen report under the Digitizers / Digitizer Application Collection (an indirect tablet).
 #[repr(C)]
 pub struct mimusb_digitizer_options {
     pub struct_size: u32,
@@ -645,12 +679,14 @@ pub struct mimusb_digitizer_options {
     pub function: mimusb_hid_function,
 }
 
+/// An Input report a generic HID Node may send: its Report ID and its exact length on the wire.
 #[repr(C)]
 pub struct mimusb_hid_report {
     pub report_id: mimusb_report_id_option,
     pub wire_length: u32,
 }
 
+/// A descriptor of the caller's own.
 #[repr(C)]
 pub struct mimusb_hid_options {
     pub struct_size: u32,
@@ -664,6 +700,7 @@ pub struct mimusb_hid_options {
     pub function: mimusb_hid_function,
 }
 
+/// A CDC-ACM function (USB CDC 1.2 5.2.3; PSTN 1.2 5.3, 6.3): two interfaces, the communication interface (class 0x02, subclass 0x02; one interrupt IN endpoint for notifications) and the data interface (class 0x0A; a bulk IN and a bulk OUT endpoint), with the Interface Association descriptor that joins them and the rules that make it answer.
 #[repr(C)]
 pub struct mimusb_cdc_acm_options {
     pub struct_size: u32,
@@ -684,6 +721,7 @@ pub struct mimusb_report_capability {
     pub wire_length: u32,
 }
 
+/// What a Spec sends.
 #[repr(C)]
 pub struct mimusb_capability_manifest {
     pub struct_size: u32,
@@ -697,6 +735,7 @@ pub struct mimusb_capability_manifest {
     pub descriptor_length: usize,
 }
 
+/// Optional values of one touch contact.
 #[repr(C)]
 pub struct mimusb_touchscreen_extra {
     pub pressure: i32,
@@ -713,6 +752,7 @@ pub struct mimusb_touchpad_extra {
     pub azimuth: i32,
 }
 
+/// One pen state.
 #[repr(C)]
 pub struct mimusb_pen_sample {
     pub in_range: u32,
@@ -742,91 +782,178 @@ pub struct mimusb_digitizer_sample {
 }
 
 extern "C" {
+    /// The details of the calling thread's last result.
     pub fn mimusb_last_error() -> *const mimusb_error_detail;
+    /// The name of a result constant.
     pub fn mimusb_result_name(result: mimusb_result) -> *const c_char;
+    /// Names the serial frame type of mimusb_error_detail.frame_type (docs/PROTOCOL.md).
     pub fn mimusb_frame_type_name(frame_type: i32) -> *const c_char;
+    /// The version of the library that is running.
     pub fn mimusb_version() -> u32;
+    /// Searches the serial ports for boards and returns a snapshot of them.
     pub fn mimusb_discover(timeout_ms: u32, out_discovery: *mut *mut mimusb_discovery) -> mimusb_result;
+    /// The number of boards in a snapshot.
     pub fn mimusb_discovery_count(discovery: *const mimusb_discovery) -> usize;
+    /// One board of a snapshot.
     pub fn mimusb_discovery_get(discovery: *const mimusb_discovery, index: usize) -> *const mimusb_device_info;
+    /// Frees a snapshot.
     pub fn mimusb_discovery_destroy(discovery: *mut mimusb_discovery);
+    /// Opens a board on a serial port.
     pub fn mimusb_device_open(port_path: *const c_char, config: *const mimusb_device_config, out_device: *mut *mut mimusb_device) -> mimusb_result;
+    /// Closes a Device and its Nodes.
     pub fn mimusb_device_close(device: *mut mimusb_device, control_timeout_ms: u32, drain_timeout_ms: u32) -> mimusb_result;
+    /// Sets the USB device descriptor, configuration and strings the target sees.
     pub fn mimusb_device_set_usb_identity(device: *mut mimusb_device, usb_device: *const mimusb_usb_device, usb_config: *const mimusb_usb_config, timeouts: *const mimusb_commit_timeouts) -> mimusb_result;
+    /// Reads the error the reader thread recorded for the link, and forgets it unless it is MIMUSB_ERR_NO_DEVICE, which stays.
     pub fn mimusb_device_latched_error(device: *mut mimusb_device) -> mimusb_result;
+    /// Whether the target has mounted the board's USB device.
     pub fn mimusb_device_is_ready(device: *const mimusb_device) -> i32;
+    /// Waits until the target mounts the board's USB device.
     pub fn mimusb_device_wait_ready(device: *mut mimusb_device, timeout_ms: u32) -> mimusb_result;
+    /// Starts gathering changes into one commit.
     pub fn mimusb_device_batch_begin(device: *mut mimusb_device) -> mimusb_result;
+    /// Commits every change made since mimusb_device_batch_begin.
     pub fn mimusb_device_batch_end(device: *mut mimusb_device, timeouts: *const mimusb_commit_timeouts) -> mimusb_result;
+    /// Sends the configuration and makes the board enumerate again.
     pub fn mimusb_device_commit(device: *mut mimusb_device, reconnect_delay_ms: u32, timeouts: *const mimusb_commit_timeouts) -> mimusb_result;
+    /// Puts the board's USB device on the target.
     pub fn mimusb_device_connect(device: *mut mimusb_device, timeouts: *const mimusb_commit_timeouts) -> mimusb_result;
+    /// Takes the board's USB device off the target.
     pub fn mimusb_device_disconnect(device: *mut mimusb_device, control_timeout_ms: u32) -> mimusb_result;
+    /// Wakes a target that suspended the board's USB device; the target must have enabled remote wakeup (usb_config.bm_attributes bit 5 and MIMUSB_EVENT_SUSPEND with value 1).
     pub fn mimusb_device_remote_wakeup(device: *mut mimusb_device, control_timeout_ms: u32) -> mimusb_result;
+    /// Restarts the board into its chip's own bootloader, where new firmware is written.
     pub fn mimusb_device_enter_bootloader(device: *mut mimusb_device, control_timeout_ms: u32) -> mimusb_result;
+    /// What the board reported at open.
     pub fn mimusb_device_board_info(device: *const mimusb_device, out_info: *mut mimusb_device_info) -> mimusb_result;
+    /// The limits of the board.
     pub fn mimusb_device_limits(device: *const mimusb_device, out_limits: *mut mimusb_board_limits) -> mimusb_result;
+    /// With reset nonzero the board's counters are zeroed after being read.
     pub fn mimusb_device_link_counters(device: *mut mimusb_device, reset: u32, control_timeout_ms: u32, out_counters: *mut mimusb_link_counters) -> mimusb_result;
+    /// Replaces the Device's own rules, which come after those of the Nodes.
     pub fn mimusb_device_set_control_rules(device: *mut mimusb_device, report_all: u32, rules: *const mimusb_control_rule, rule_count: usize, control_timeout_ms: u32) -> mimusb_result;
+    /// Changes the bytes of ANSWER rule number rule_index of mimusb_device_set_control_rules, up to the length its data had when the rules were set.
     pub fn mimusb_device_set_rule_data(device: *mut mimusb_device, rule_index: usize, data: *const u8, length: usize, control_timeout_ms: u32) -> mimusb_result;
+    /// As mimusb_device_set_rule_data for rule number rule_index of the Node's own rules: the extra_rules of its placement first, then the rules its Spec brings (mimusb_node_find_rule finds one the Spec names).
     pub fn mimusb_node_set_rule_data(node: *mut mimusb_node, rule_index: usize, data: *const u8, length: usize, control_timeout_ms: u32) -> mimusb_result;
+    /// Finds the rule the Spec of a Node names with `slot` (mimusb_rule_slot) among the Node's own rules, so that mimusb_node_set_rule_data can change its bytes: *out_rule_index is its number, which counts the Node's extra_rules first (a Node has them before the rules of its Spec).
     pub fn mimusb_node_find_rule(node: *const mimusb_node, slot: mimusb_rule_slot, out_rule_index: *mut usize) -> mimusb_result;
+    /// Answers the held transfer of token (from MIMUSB_EVENT_CONTROL_SETUP with the HELD flag, or from MIMUSB_EVENT_CONTROL_DATA for the verdict of a host-to-device transfer) with action: ANSWER (data is the data stage of a device-to-host request, empty otherwise, or the acknowledging verdict), STALL, DROP (data empty) or LEAVE (the board's own handling).
     pub fn mimusb_device_control_reply(device: *mut mimusb_device, token: u32, action: mimusb_control_action, data: *const u8, length: usize, send_timeout_ms: u32) -> mimusb_result;
+    /// enabled 1 makes the board report the transfers it drops because a queue is full (MIMUSB_EVENT_TRANSFER_LOST), at most one event per interval_ms (0 to MIMUSB_LOSS_MAX_INTERVAL_MS; 0 reports each time).
     pub fn mimusb_device_set_loss_reporting(device: *mut mimusb_device, enabled: u32, interval_ms: u32, control_timeout_ms: u32) -> mimusb_result;
+    /// Stores a string descriptor (in the Device's language_id) and returns its index, for the caller's own class descriptors.
     pub fn mimusb_device_add_string(device: *mut mimusb_device, utf8: *const c_char, out_index: *mut u8) -> mimusb_result;
+    /// Forgets a string given by mimusb_device_add_string; the next commit no longer sends it.
     pub fn mimusb_device_remove_string(device: *mut mimusb_device, index: u8) -> mimusb_result;
+    /// Stores a string descriptor exactly as it goes on the bus: index 1 to 255, a nonzero language_id (USB 2.0 9.6.7) and unit_count UTF-16 code units (1 to 126).
     pub fn mimusb_device_set_string(device: *mut mimusb_device, index: u8, language_id: u16, units: *const u16, unit_count: usize) -> mimusb_result;
+    /// Forgets a string given by mimusb_device_set_string; the next commit no longer sends it.
     pub fn mimusb_device_clear_string(device: *mut mimusb_device, index: u8, language_id: u16) -> mimusb_result;
+    /// For a Device composed from Nodes: stores the Binary Object Store descriptor (USB 3.2 9.6.2); length 0 removes it.
     pub fn mimusb_device_set_bos(device: *mut mimusb_device, bytes: *const u8, length: usize) -> mimusb_result;
+    /// Presents the bytes unchanged; usb_device, usb_config and their strings are not used.
     pub fn mimusb_device_set_descriptors(device: *mut mimusb_device, descriptors: *const mimusb_device_descriptors, timeouts: *const mimusb_commit_timeouts) -> mimusb_result;
+    /// Forgets the descriptors, the policies of their endpoints and what the board held for them; Nodes can be opened again.
     pub fn mimusb_device_clear_descriptors(device: *mut mimusb_device, timeouts: *const mimusb_commit_timeouts) -> mimusb_result;
+    /// The policy of an IN endpoint of a Device given as bytes.
     pub fn mimusb_device_endpoint_set_policy(device: *mut mimusb_device, address: u8, policy: *const mimusb_endpoint_policy, control_timeout_ms: u32) -> mimusb_result;
+    /// As mimusb_node_endpoint_write, for an IN endpoint of a Device given as bytes.
     pub fn mimusb_device_endpoint_write(device: *mut mimusb_device, address: u8, data: *const u8, length: usize, timeout_ms: u32) -> mimusb_result;
+    /// As mimusb_node_endpoint_stall for an endpoint of a Device given as bytes.
     pub fn mimusb_device_endpoint_stall(device: *mut mimusb_device, address: u8, control_timeout_ms: u32) -> mimusb_result;
+    /// As mimusb_node_endpoint_clear_stall for an endpoint of a Device given as bytes.
     pub fn mimusb_device_endpoint_clear_stall(device: *mut mimusb_device, address: u8, control_timeout_ms: u32) -> mimusb_result;
+    /// As mimusb_node_endpoint_flush for an IN endpoint of a Device given as bytes.
     pub fn mimusb_device_endpoint_flush(device: *mut mimusb_device, address: u8, control_timeout_ms: u32) -> mimusb_result;
+    /// Makes a keyboard Spec.
     pub fn mimusb_spec_create_keyboard(options: *const mimusb_keyboard_options, out_spec: *mut *mut mimusb_spec) -> mimusb_result;
+    /// Makes a mouse Spec.
     pub fn mimusb_spec_create_mouse(options: *const mimusb_mouse_options, out_spec: *mut *mut mimusb_spec) -> mimusb_result;
+    /// Makes a Spec of one-bit controls on a HUT page.
     pub fn mimusb_spec_create_toggle(options: *const mimusb_toggle_options, out_spec: *mut *mut mimusb_spec) -> mimusb_result;
+    /// Makes a gamepad Spec.
     pub fn mimusb_spec_create_gamepad(options: *const mimusb_gamepad_options, out_spec: *mut *mut mimusb_spec) -> mimusb_result;
+    /// Makes a touchscreen Spec.
     pub fn mimusb_spec_create_touchscreen(options: *const mimusb_touchscreen_options, out_spec: *mut *mut mimusb_spec) -> mimusb_result;
+    /// Makes a touchpad Spec.
     pub fn mimusb_spec_create_touchpad(options: *const mimusb_touchpad_options, out_spec: *mut *mut mimusb_spec) -> mimusb_result;
+    /// Makes a pen Spec.
     pub fn mimusb_spec_create_pen(options: *const mimusb_pen_options, out_spec: *mut *mut mimusb_spec) -> mimusb_result;
+    /// Makes a digitizer Spec.
     pub fn mimusb_spec_create_digitizer(options: *const mimusb_digitizer_options, out_spec: *mut *mut mimusb_spec) -> mimusb_result;
+    /// Makes a Spec from the caller's own HID report descriptor.
     pub fn mimusb_spec_create_hid(options: *const mimusb_hid_options, out_spec: *mut *mut mimusb_spec) -> mimusb_result;
+    /// Makes a Spec of a CDC-ACM function (see mimusb_cdc_acm_options): two interfaces and the roles MIMUSB_ROLE_CDC_NOTIFY (interrupt), MIMUSB_ROLE_CDC_DATA_IN and MIMUSB_ROLE_CDC_DATA_OUT (bulk), all required.
     pub fn mimusb_spec_create_cdc_acm(options: *const mimusb_cdc_acm_options, out_spec: *mut *mut mimusb_spec) -> mimusb_result;
+    /// Makes a Spec of any class from interfaces written out.
     pub fn mimusb_spec_create_interfaces(config: *const mimusb_node_config, out_spec: *mut *mut mimusb_spec) -> mimusb_result;
+    /// Lists the endpoint roles of a Spec in order and whether each is required, so a caller sees what its placement must give.
     pub fn mimusb_spec_roles(spec: *const mimusb_spec, out_roles: *mut mimusb_role_info, capacity: usize, out_count: *mut usize) -> mimusb_result;
+    /// The number of interfaces a Node of the Spec takes on the bus: 1 for a HID Spec, 2 for a CDC-ACM Spec, the length of the configuration for a Spec of mimusb_spec_create_interfaces.
     pub fn mimusb_spec_interface_count(spec: *const mimusb_spec, out_count: *mut usize) -> mimusb_result;
+    /// What a Node of the Spec adds to the board's control rule memory, not counting the extra_rules of its placement: the number of rules and the bytes of their ANSWER data.
     pub fn mimusb_spec_rule_cost(spec: *const mimusb_spec, out_rules: *mut usize, out_answer_bytes: *mut usize) -> mimusb_result;
+    /// Adds a reference to a Spec.
     pub fn mimusb_spec_retain(spec: *mut mimusb_spec);
+    /// Gives up a reference to a Spec.
     pub fn mimusb_spec_release(spec: *mut mimusb_spec);
+    /// The report descriptor of a Spec.
     pub fn mimusb_spec_descriptor(spec: *const mimusb_spec, bytes: *const *const u8, length: *mut usize) -> mimusb_result;
+    /// What a Spec sends.
     pub fn mimusb_spec_manifest(spec: *const mimusb_spec, manifest: *mut mimusb_capability_manifest) -> mimusb_result;
+    /// Opens a Node of any class: spec says what it is, placement says where it goes.
     pub fn mimusb_node_open(device: *mut mimusb_device, spec: *mut mimusb_spec, placement: *const mimusb_node_placement, timeouts: *const mimusb_commit_timeouts, out_node: *mut *mut mimusb_node) -> mimusb_result;
+    /// Closing a Node whose interface number is not the highest in use leaves a gap: the Node is gone, the commit fails with MIMUSB_ERR_PARAM, and a later commit succeeds once the gap is closed.
     pub fn mimusb_node_close(node: *mut mimusb_node, timeouts: *const mimusb_commit_timeouts, drain_timeout_ms: u32) -> mimusb_result;
+    /// The number the board knows a Node by.
     pub fn mimusb_node_id(node: *const mimusb_node) -> u16;
+    /// Sets what the board answers (the bytes after the Report ID, at most max_feature_bytes) when the target reads Feature report report_id of this Node.
     pub fn mimusb_node_set_feature_response(node: *mut mimusb_node, report_id: u8, data: *const u8, length: usize, control_timeout_ms: u32) -> mimusb_result;
+    /// Changes what an IN endpoint does when its queue is full and how many transfers may wait.
     pub fn mimusb_node_endpoint_set_policy(node: *mut mimusb_node, address: u8, policy: *const mimusb_endpoint_policy, control_timeout_ms: u32) -> mimusb_result;
+    /// Sends data as one USB transfer on an IN endpoint of a Node.
     pub fn mimusb_node_endpoint_write(node: *mut mimusb_node, address: u8, data: *const u8, length: usize, timeout_ms: u32) -> mimusb_result;
+    /// Sets the Halt feature of an endpoint of a Node (USB 2.0 9.4.5): the endpoint answers STALL until it is cleared by mimusb_node_endpoint_clear_stall or by the target.
     pub fn mimusb_node_endpoint_stall(node: *mut mimusb_node, address: u8, control_timeout_ms: u32) -> mimusb_result;
+    /// As mimusb_node_endpoint_stall, clearing the Halt feature: an IN endpoint goes on with what waits, an OUT endpoint accepts packets again.
     pub fn mimusb_node_endpoint_clear_stall(node: *mut mimusb_node, address: u8, control_timeout_ms: u32) -> mimusb_result;
+    /// Drops what waits on an IN endpoint of the board; a transfer the board's controller already has completes.
     pub fn mimusb_node_endpoint_flush(node: *mut mimusb_node, address: u8, control_timeout_ms: u32) -> mimusb_result;
+    /// What a Node sends.
     pub fn mimusb_node_manifest(node: *const mimusb_node, manifest: *mut mimusb_capability_manifest) -> mimusb_result;
+    /// Sends the Node's current state as a report.
     pub fn mimusb_node_submit(node: *mut mimusb_node, send_timeout_ms: u32) -> mimusb_result;
+    /// Sends reports until the Node's state has been sent.
     pub fn mimusb_node_submit_blocking(node: *mut mimusb_node, timeout_ms: u32) -> mimusb_result;
+    /// Presses (down 1) or releases (down 0) one Keyboard page Usage, a modifier or a key of the Spec's range.
     pub fn mimusb_keyboard_key(node: *mut mimusb_node, usage: u16, down: u32) -> mimusb_result;
+    /// Adds to the pending X and Y movement.
     pub fn mimusb_mouse_move(node: *mut mimusb_node, dx: i32, dy: i32) -> mimusb_result;
+    /// Adds to the pending wheel and pan movement, as mimusb_mouse_move does.
     pub fn mimusb_mouse_scroll(node: *mut mimusb_node, wheel: i32, pan: i32) -> mimusb_result;
+    /// Presses (down 1) or releases (down 0) button 1 to button_count.
     pub fn mimusb_mouse_button(node: *mut mimusb_node, button: u32, down: u32) -> mimusb_result;
+    /// Presses (down 1) or releases (down 0) one Usage of the Spec's allow-list; any number may be pressed at once.
     pub fn mimusb_toggle_usage(node: *mut mimusb_node, usage: u16, down: u32) -> mimusb_result;
+    /// Presses (down 1) or releases (down 0) button 1 to button_count.
     pub fn mimusb_gamepad_button(node: *mut mimusb_node, button: u32, down: u32) -> mimusb_result;
+    /// Sets axes[axis_index] of the Spec to value, which must be in its logical range.
     pub fn mimusb_gamepad_axis(node: *mut mimusb_node, axis_index: usize, value: i32) -> mimusb_result;
+    /// Sets the D-pad from four 0/1 directions.
     pub fn mimusb_gamepad_dpad(node: *mut mimusb_node, up: u32, down: u32, right: u32, left: u32) -> mimusb_result;
+    /// down 1 places contact_id in a free slot, or moves it if already down; down 0 lifts it at x, y.
     pub fn mimusb_touchscreen_contact(node: *mut mimusb_node, contact_id: u32, down: u32, x: i32, y: i32, extra: *const mimusb_touchscreen_extra) -> mimusb_result;
+    /// As mimusb_touchscreen_contact, for a Touchpad Node.
     pub fn mimusb_touchpad_contact(node: *mut mimusb_node, contact_id: u32, down: u32, x: i32, y: i32, extra: *const mimusb_touchpad_extra) -> mimusb_result;
+    /// Presses (down 1) or releases (down 0) click button 1 to button_count.
     pub fn mimusb_touchpad_button(node: *mut mimusb_node, button: u32, down: u32) -> mimusb_result;
+    /// Sets the whole pen state.
     pub fn mimusb_pen_update(node: *mut mimusb_node, sample: *const mimusb_pen_sample) -> mimusb_result;
+    /// As mimusb_pen_update, for a Digitizer Node.
     pub fn mimusb_digitizer_update(node: *mut mimusb_node, sample: *const mimusb_digitizer_sample) -> mimusb_result;
+    /// Sets the battery level of a Node whose Spec has enable_battery.
     pub fn mimusb_battery_update(node: *mut mimusb_node, strength: i32) -> mimusb_result;
+    /// Sends one report of a HID Spec's Node after checking it against the Spec's report table.
     pub fn mimusb_hid_submit(node: *mut mimusb_node, report: *const u8, length: usize, send_timeout_ms: u32) -> mimusb_result;
 }

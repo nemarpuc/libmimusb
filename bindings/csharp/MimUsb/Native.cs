@@ -118,6 +118,7 @@ public enum EndpointRole : int
 
 public enum RuleSlot : int { RuleSlotCdcLineCoding = 1 }
 
+/// <summary>The details of the calling thread's last result.</summary>
 [StructLayout(LayoutKind.Sequential)]
 public struct ErrorDetail
 {
@@ -147,8 +148,12 @@ public struct Event
     public uint ControlFlags;
     public uint EndpointAddress;
     public uint InterfaceNumber;
+
+    /// <summary>A zeroed structure with StructSize set, as the C *_init does.</summary>
+    public static Event Init() => new() { StructSize = (uint)Marshal.SizeOf<Event>() };
 }
 
+/// <summary>A board found by mimusb_discover, or the one a Device has open.</summary>
 [StructLayout(LayoutKind.Sequential)]
 public unsafe struct DeviceInfo
 {
@@ -174,6 +179,7 @@ public unsafe struct DeviceInfo
     public fixed byte ReservedEnd[3];
 }
 
+/// <summary>What the board holds, in bytes: 64-byte endpoint packets on a full-speed chip, 1024 on a high-speed one.</summary>
 [StructLayout(LayoutKind.Sequential)]
 public struct BoardLimits
 {
@@ -194,8 +200,12 @@ public struct BoardLimits
     public uint EndpointQueueSlots;
     public uint TransferTypes;
     public uint MaxBosBytes;
+
+    /// <summary>A zeroed structure with StructSize set, as the C *_init does.</summary>
+    public static BoardLimits Init() => new() { StructSize = (uint)Marshal.SizeOf<BoardLimits>() };
 }
 
+/// <summary>What the board counted on its serial line since the last reset, each saturating at 65535.</summary>
 [StructLayout(LayoutKind.Sequential)]
 public struct LinkCounters
 {
@@ -206,8 +216,12 @@ public struct LinkCounters
     public uint UartOverrun;
     public uint RingOverrun;
     public uint ProbesGood;
+
+    /// <summary>A zeroed structure with StructSize set, as the C *_init does.</summary>
+    public static LinkCounters Init() => new() { StructSize = (uint)Marshal.SizeOf<LinkCounters>() };
 }
 
+/// <summary>The Device descriptor and its strings.</summary>
 [StructLayout(LayoutKind.Sequential)]
 public struct UsbDevice
 {
@@ -226,6 +240,7 @@ public struct UsbDevice
     public uint SerialFromChipId;
 }
 
+/// <summary>The Configuration descriptor.</summary>
 [StructLayout(LayoutKind.Sequential)]
 public struct UsbConfig
 {
@@ -236,6 +251,7 @@ public struct UsbConfig
     public nint String;
 }
 
+/// <summary>The Linux HID parser limits of the target (docs/LIMITS.md).</summary>
 [StructLayout(LayoutKind.Sequential)]
 public struct LinuxHidPolicy
 {
@@ -247,12 +263,14 @@ public struct LinuxHidPolicy
     public ulong ReportDataBits;
 }
 
+/// <summary>What the target machine limits, whatever the function: one member for each kind of target limit a Spec can exceed.</summary>
 [StructLayout(LayoutKind.Sequential)]
 public struct TargetLimits
 {
     public LinuxHidPolicy LinuxHid;
 }
 
+/// <summary>The serial link and what the library does on it.</summary>
 [StructLayout(LayoutKind.Sequential)]
 public struct TransportOptions
 {
@@ -277,8 +295,12 @@ public struct DeviceConfig
     public TargetLimits Target;
     public UsbDevice UsbDevice;
     public UsbConfig UsbConfig;
+
+    /// <summary>A zeroed structure with StructSize set, as the C *_init does.</summary>
+    public static DeviceConfig Init() => new() { StructSize = (uint)Marshal.SizeOf<DeviceConfig>() };
 }
 
+/// <summary>The waits of a call that configures the board and enumerates its USB device again (a commit).</summary>
 [StructLayout(LayoutKind.Sequential)]
 public struct CommitTimeouts
 {
@@ -286,6 +308,9 @@ public struct CommitTimeouts
     public uint Reserved;
     public uint ControlTimeoutMs;
     public uint ReconnectTimeoutMs;
+
+    /// <summary>A zeroed structure with StructSize set, as the C *_init does.</summary>
+    public static CommitTimeouts Init() => new() { StructSize = (uint)Marshal.SizeOf<CommitTimeouts>() };
 }
 
 [StructLayout(LayoutKind.Sequential)]
@@ -295,6 +320,7 @@ public struct EndpointPolicy
     public byte Depth;
 }
 
+/// <summary>One endpoint of a setting (USB 2.0 9.6.6).</summary>
 [StructLayout(LayoutKind.Sequential)]
 public struct UsbEndpoint
 {
@@ -310,6 +336,7 @@ public struct UsbEndpoint
     public EndpointPolicy Policy;
 }
 
+/// <summary>A request matches when (field &amp; mask) == value for each of the four fields; a mask of 0 matches anything.</summary>
 [StructLayout(LayoutKind.Sequential)]
 public struct ControlRule
 {
@@ -332,6 +359,7 @@ public struct ControlRule
     public ControlAction WhenLate;
 }
 
+/// <summary>One item.</summary>
 [StructLayout(LayoutKind.Sequential)]
 public struct UsbItem
 {
@@ -342,6 +370,7 @@ public struct UsbItem
     public nuint DescriptorLength;
 }
 
+/// <summary>One alternate setting of an interface (USB 2.0 9.6.5): the Interface descriptor with its bAlternateSetting, then the items in order.</summary>
 [StructLayout(LayoutKind.Sequential)]
 public struct UsbSetting
 {
@@ -349,6 +378,7 @@ public struct UsbSetting
     public nuint ItemCount;
 }
 
+/// <summary>One interface of a Node, as the target sees it (USB 2.0 9.6.5).</summary>
 [StructLayout(LayoutKind.Sequential)]
 public struct UsbInterface
 {
@@ -361,6 +391,7 @@ public struct UsbInterface
     public nuint SettingCount;
 }
 
+/// <summary>The interfaces of one Node.</summary>
 [StructLayout(LayoutKind.Sequential)]
 public struct NodeConfig
 {
@@ -372,8 +403,12 @@ public struct NodeConfig
     public nuint AssociationLength;
     public nint Rules;
     public nuint RuleCount;
+
+    /// <summary>A zeroed structure with StructSize set, as the C *_init does.</summary>
+    public static NodeConfig Init() => new() { StructSize = (uint)Marshal.SizeOf<NodeConfig>() };
 }
 
+/// <summary>One role of a Spec and whether the placement must give it.</summary>
 [StructLayout(LayoutKind.Sequential)]
 public struct RoleInfo
 {
@@ -381,6 +416,7 @@ public struct RoleInfo
     public uint Required;
 }
 
+/// <summary>The endpoint the caller puts in one role of a Spec.</summary>
 [StructLayout(LayoutKind.Sequential)]
 public struct PlacedEndpoint
 {
@@ -389,6 +425,7 @@ public struct PlacedEndpoint
     public UsbEndpoint Endpoint;
 }
 
+/// <summary>Where a Node goes: the bus numbers, the endpoints of its roles and the Node's own control rules (mimusb_node_open).</summary>
 [StructLayout(LayoutKind.Sequential)]
 public unsafe struct NodePlacement
 {
@@ -401,8 +438,12 @@ public unsafe struct NodePlacement
     public nuint EndpointCount;
     public nint ExtraRules;
     public nuint ExtraRuleCount;
+
+    /// <summary>A zeroed structure with StructSize set, as the C *_init does.</summary>
+    public static NodePlacement Init() => new() { StructSize = (uint)Marshal.SizeOf<NodePlacement>() };
 }
 
+/// <summary>The HID function a Spec describes (HID 1.11 6.2.1, 4.2, 4.3): what the HID descriptor and the Interface descriptor of the Node say.</summary>
 [StructLayout(LayoutKind.Sequential)]
 public unsafe struct HidFunction
 {
@@ -413,6 +454,7 @@ public unsafe struct HidFunction
     public fixed byte Reserved8[3];
 }
 
+/// <summary>A whole USB device as the bytes the target reads (mimusb_device_set_descriptors), to present a copy of a real device.</summary>
 [StructLayout(LayoutKind.Sequential)]
 public struct DeviceDescriptors
 {
@@ -424,8 +466,12 @@ public struct DeviceDescriptors
     public nuint ConfigurationLength;
     public nint Bos;
     public nuint BosLength;
+
+    /// <summary>A zeroed structure with StructSize set, as the C *_init does.</summary>
+    public static DeviceDescriptors Init() => new() { StructSize = (uint)Marshal.SizeOf<DeviceDescriptors>() };
 }
 
+/// <summary>The four HID 1.11 physical Global items for one field.</summary>
 [StructLayout(LayoutKind.Sequential)]
 public struct PhysicalProperties
 {
@@ -436,6 +482,7 @@ public struct PhysicalProperties
     public uint Unit;
 }
 
+/// <summary>One report field.</summary>
 [StructLayout(LayoutKind.Sequential)]
 public struct IntegerField
 {
@@ -445,6 +492,7 @@ public struct IntegerField
     public PhysicalProperties Physical;
 }
 
+/// <summary>With enabled 1, every report starts with value (1 to 255).</summary>
 [StructLayout(LayoutKind.Sequential)]
 public unsafe struct ReportId
 {
@@ -453,6 +501,7 @@ public unsafe struct ReportId
     public fixed byte Reserved8[3];
 }
 
+/// <summary>Battery Strength (Generic Device Controls 0x06/0x20) as a second Input report in the profile's Application Collection.</summary>
 [StructLayout(LayoutKind.Sequential)]
 public struct BatteryReport
 {
@@ -460,6 +509,7 @@ public struct BatteryReport
     public IntegerField Strength;
 }
 
+/// <summary>Full N-key rollover: one bit per Usage from usage_minimum (at least 0x04) to usage_maximum, plus the eight modifiers 0xE0 to 0xE7, which the range must not include.</summary>
 [StructLayout(LayoutKind.Sequential)]
 public struct KeyboardOptions
 {
@@ -471,8 +521,12 @@ public struct KeyboardOptions
     public uint EnableBattery;
     public BatteryReport Battery;
     public HidFunction Function;
+
+    /// <summary>A zeroed structure with StructSize set, as the C *_init does.</summary>
+    public static KeyboardOptions Init() => new() { StructSize = (uint)Marshal.SizeOf<KeyboardOptions>() };
 }
 
+/// <summary>X, Y, wheel and pan are relative; their ranges must hold negative and positive values.</summary>
 [StructLayout(LayoutKind.Sequential)]
 public struct MouseOptions
 {
@@ -489,8 +543,12 @@ public struct MouseOptions
     public uint EnableBattery;
     public BatteryReport Battery;
     public HidFunction Function;
+
+    /// <summary>A zeroed structure with StructSize set, as the C *_init does.</summary>
+    public static MouseOptions Init() => new() { StructSize = (uint)Marshal.SizeOf<MouseOptions>() };
 }
 
+/// <summary>One-bit controls on any HUT page: Consumer, System Control, Camera Control, Telephony, ...</summary>
 [StructLayout(LayoutKind.Sequential)]
 public struct ToggleOptions
 {
@@ -509,8 +567,12 @@ public struct ToggleOptions
     public uint EnableBattery;
     public BatteryReport Battery;
     public HidFunction Function;
+
+    /// <summary>A zeroed structure with StructSize set, as the C *_init does.</summary>
+    public static ToggleOptions Init() => new() { StructSize = (uint)Marshal.SizeOf<ToggleOptions>() };
 }
 
+/// <summary>One axis.</summary>
 [StructLayout(LayoutKind.Sequential)]
 public struct GamepadAxisOption
 {
@@ -522,6 +584,7 @@ public struct GamepadAxisOption
     public nint ExpectedLinuxCode;
 }
 
+/// <summary>At least two axes, one of them MIMUSB_AXIS_X and one MIMUSB_AXIS_Y, each role once.</summary>
 [StructLayout(LayoutKind.Sequential)]
 public struct GamepadOptions
 {
@@ -539,8 +602,12 @@ public struct GamepadOptions
     public uint EnableBattery;
     public BatteryReport Battery;
     public HidFunction Function;
+
+    /// <summary>A zeroed structure with StructSize set, as the C *_init does.</summary>
+    public static GamepadOptions Init() => new() { StructSize = (uint)Marshal.SizeOf<GamepadOptions>() };
 }
 
+/// <summary>Fixed-slot Multi-Touch under the Digitizers / Touch Screen Application Collection.</summary>
 [StructLayout(LayoutKind.Sequential)]
 public struct TouchscreenOptions
 {
@@ -569,8 +636,12 @@ public struct TouchscreenOptions
     public uint EnableBattery;
     public BatteryReport Battery;
     public HidFunction Function;
+
+    /// <summary>A zeroed structure with StructSize set, as the C *_init does.</summary>
+    public static TouchscreenOptions Init() => new() { StructSize = (uint)Marshal.SizeOf<TouchscreenOptions>() };
 }
 
+/// <summary>The touchscreen report under the Digitizers / Touch Pad Application Collection, plus button_count click buttons (0 for a buttonless clickpad).</summary>
 [StructLayout(LayoutKind.Sequential)]
 public struct TouchpadOptions
 {
@@ -600,8 +671,12 @@ public struct TouchpadOptions
     public uint EnableBattery;
     public BatteryReport Battery;
     public HidFunction Function;
+
+    /// <summary>A zeroed structure with StructSize set, as the C *_init does.</summary>
+    public static TouchpadOptions Init() => new() { StructSize = (uint)Marshal.SizeOf<TouchpadOptions>() };
 }
 
+/// <summary>A stylus under the Digitizers / Pen Application Collection (a direct, on-screen pen).</summary>
 [StructLayout(LayoutKind.Sequential)]
 public struct PenOptions
 {
@@ -624,8 +699,12 @@ public struct PenOptions
     public uint EnableBattery;
     public BatteryReport Battery;
     public HidFunction Function;
+
+    /// <summary>A zeroed structure with StructSize set, as the C *_init does.</summary>
+    public static PenOptions Init() => new() { StructSize = (uint)Marshal.SizeOf<PenOptions>() };
 }
 
+/// <summary>The pen report under the Digitizers / Digitizer Application Collection (an indirect tablet).</summary>
 [StructLayout(LayoutKind.Sequential)]
 public struct DigitizerOptions
 {
@@ -648,8 +727,12 @@ public struct DigitizerOptions
     public uint EnableBattery;
     public BatteryReport Battery;
     public HidFunction Function;
+
+    /// <summary>A zeroed structure with StructSize set, as the C *_init does.</summary>
+    public static DigitizerOptions Init() => new() { StructSize = (uint)Marshal.SizeOf<DigitizerOptions>() };
 }
 
+/// <summary>An Input report a generic HID Node may send: its Report ID and its exact length on the wire.</summary>
 [StructLayout(LayoutKind.Sequential)]
 public struct HidReport
 {
@@ -657,6 +740,7 @@ public struct HidReport
     public uint WireLength;
 }
 
+/// <summary>A descriptor of the caller's own.</summary>
 [StructLayout(LayoutKind.Sequential)]
 public struct HidOptions
 {
@@ -669,8 +753,12 @@ public struct HidOptions
     public uint RequiresOutput;
     public uint RequiresFeatureResponse;
     public HidFunction Function;
+
+    /// <summary>A zeroed structure with StructSize set, as the C *_init does.</summary>
+    public static HidOptions Init() => new() { StructSize = (uint)Marshal.SizeOf<HidOptions>() };
 }
 
+/// <summary>A CDC-ACM function (USB CDC 1.2 5.2.3; PSTN 1.2 5.3, 6.3): two interfaces, the communication interface (class 0x02, subclass 0x02; one interrupt IN endpoint for notifications) and the data interface (class 0x0A; a bulk IN and a bulk OUT endpoint), with the Interface Association descriptor that joins them and the rules that make it answer.</summary>
 [StructLayout(LayoutKind.Sequential)]
 public unsafe struct CdcAcmOptions
 {
@@ -684,6 +772,9 @@ public unsafe struct CdcAcmOptions
     public fixed byte LineCoding[7];
     public byte Reserved8b;
     public nint DataName;
+
+    /// <summary>A zeroed structure with StructSize set, as the C *_init does.</summary>
+    public static CdcAcmOptions Init() => new() { StructSize = (uint)Marshal.SizeOf<CdcAcmOptions>() };
 }
 
 [StructLayout(LayoutKind.Sequential)]
@@ -693,6 +784,7 @@ public struct ReportCapability
     public uint WireLength;
 }
 
+/// <summary>What a Spec sends.</summary>
 [StructLayout(LayoutKind.Sequential)]
 public struct CapabilityManifest
 {
@@ -705,8 +797,12 @@ public struct CapabilityManifest
     public nint Reports;
     public nuint ReportCount;
     public nuint DescriptorLength;
+
+    /// <summary>A zeroed structure with StructSize set, as the C *_init does.</summary>
+    public static CapabilityManifest Init() => new() { StructSize = (uint)Marshal.SizeOf<CapabilityManifest>() };
 }
 
+/// <summary>Optional values of one touch contact.</summary>
 [StructLayout(LayoutKind.Sequential)]
 public struct TouchscreenExtra
 {
@@ -725,6 +821,7 @@ public struct TouchpadExtra
     public int Azimuth;
 }
 
+/// <summary>One pen state.</summary>
 [StructLayout(LayoutKind.Sequential)]
 public struct PenSample
 {
@@ -1055,244 +1152,392 @@ public static class Native
             ["MIMUSB_ITEM_DESCRIPTOR"] = 2,
         };
 
+    /// <summary>The details of the calling thread's last result.</summary>
     [DllImport(Library, EntryPoint = "mimusb_last_error", ExactSpelling = true, CallingConvention = Call)]
     public static extern nint LastError();
+    /// <summary>The name of a result constant.</summary>
     [DllImport(Library, EntryPoint = "mimusb_result_name", ExactSpelling = true, CallingConvention = Call)]
     public static extern nint ResultName(Result result);
+    /// <summary>Names the serial frame type of mimusb_error_detail.frame_type (docs/PROTOCOL.md).</summary>
     [DllImport(Library, EntryPoint = "mimusb_frame_type_name", ExactSpelling = true, CallingConvention = Call)]
     public static extern nint FrameTypeName(int frameType);
+    /// <summary>The version of the library that is running.</summary>
     [DllImport(Library, EntryPoint = "mimusb_version", ExactSpelling = true, CallingConvention = Call)]
     public static extern uint Version();
+    /// <summary>Searches the serial ports for boards and returns a snapshot of them.</summary>
     [DllImport(Library, EntryPoint = "mimusb_discover", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result Discover(uint timeoutMs, out nint discovery);
+    /// <summary>The number of boards in a snapshot.</summary>
     [DllImport(Library, EntryPoint = "mimusb_discovery_count", ExactSpelling = true, CallingConvention = Call)]
     public static extern nuint DiscoveryCount(nint discovery);
+    /// <summary>One board of a snapshot.</summary>
     [DllImport(Library, EntryPoint = "mimusb_discovery_get", ExactSpelling = true, CallingConvention = Call)]
     public static extern nint DiscoveryGet(nint discovery, nuint index);
+    /// <summary>Frees a snapshot.</summary>
     [DllImport(Library, EntryPoint = "mimusb_discovery_destroy", ExactSpelling = true, CallingConvention = Call)]
     public static extern void DiscoveryDestroy(nint discovery);
+    /// <summary>Opens a board on a serial port.</summary>
     [DllImport(Library, EntryPoint = "mimusb_device_open", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result DeviceOpen(nint portPath, in DeviceConfig config, out nint device);
+    /// <summary>Opens a board on a serial port.</summary>
     [DllImport(Library, EntryPoint = "mimusb_device_open", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result DeviceOpen(nint portPath, nint config, out nint device);
+    /// <summary>Closes a Device and its Nodes.</summary>
     [DllImport(Library, EntryPoint = "mimusb_device_close", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result DeviceClose(nint device, uint controlTimeoutMs, uint drainTimeoutMs);
+    /// <summary>Sets the USB device descriptor, configuration and strings the target sees.</summary>
     [DllImport(Library, EntryPoint = "mimusb_device_set_usb_identity", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result DeviceSetUsbIdentity(nint device, in UsbDevice usbDevice, in UsbConfig usbConfig, in CommitTimeouts timeouts);
+    /// <summary>Sets the USB device descriptor, configuration and strings the target sees.</summary>
     [DllImport(Library, EntryPoint = "mimusb_device_set_usb_identity", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result DeviceSetUsbIdentity(nint device, nint usbDevice, nint usbConfig, nint timeouts);
+    /// <summary>Reads the error the reader thread recorded for the link, and forgets it unless it is MIMUSB_ERR_NO_DEVICE, which stays.</summary>
     [DllImport(Library, EntryPoint = "mimusb_device_latched_error", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result DeviceLatchedError(nint device);
+    /// <summary>Whether the target has mounted the board's USB device.</summary>
     [DllImport(Library, EntryPoint = "mimusb_device_is_ready", ExactSpelling = true, CallingConvention = Call)]
     public static extern int DeviceIsReady(nint device);
+    /// <summary>Waits until the target mounts the board's USB device.</summary>
     [DllImport(Library, EntryPoint = "mimusb_device_wait_ready", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result DeviceWaitReady(nint device, uint timeoutMs);
+    /// <summary>Starts gathering changes into one commit.</summary>
     [DllImport(Library, EntryPoint = "mimusb_device_batch_begin", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result DeviceBatchBegin(nint device);
+    /// <summary>Commits every change made since mimusb_device_batch_begin.</summary>
     [DllImport(Library, EntryPoint = "mimusb_device_batch_end", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result DeviceBatchEnd(nint device, in CommitTimeouts timeouts);
+    /// <summary>Commits every change made since mimusb_device_batch_begin.</summary>
     [DllImport(Library, EntryPoint = "mimusb_device_batch_end", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result DeviceBatchEnd(nint device, nint timeouts);
+    /// <summary>Sends the configuration and makes the board enumerate again.</summary>
     [DllImport(Library, EntryPoint = "mimusb_device_commit", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result DeviceCommit(nint device, uint reconnectDelayMs, in CommitTimeouts timeouts);
+    /// <summary>Sends the configuration and makes the board enumerate again.</summary>
     [DllImport(Library, EntryPoint = "mimusb_device_commit", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result DeviceCommit(nint device, uint reconnectDelayMs, nint timeouts);
+    /// <summary>Puts the board's USB device on the target.</summary>
     [DllImport(Library, EntryPoint = "mimusb_device_connect", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result DeviceConnect(nint device, in CommitTimeouts timeouts);
+    /// <summary>Puts the board's USB device on the target.</summary>
     [DllImport(Library, EntryPoint = "mimusb_device_connect", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result DeviceConnect(nint device, nint timeouts);
+    /// <summary>Takes the board's USB device off the target.</summary>
     [DllImport(Library, EntryPoint = "mimusb_device_disconnect", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result DeviceDisconnect(nint device, uint controlTimeoutMs);
+    /// <summary>Wakes a target that suspended the board's USB device; the target must have enabled remote wakeup (usb_config.bm_attributes bit 5 and MIMUSB_EVENT_SUSPEND with value 1).</summary>
     [DllImport(Library, EntryPoint = "mimusb_device_remote_wakeup", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result DeviceRemoteWakeup(nint device, uint controlTimeoutMs);
+    /// <summary>Restarts the board into its chip's own bootloader, where new firmware is written.</summary>
     [DllImport(Library, EntryPoint = "mimusb_device_enter_bootloader", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result DeviceEnterBootloader(nint device, uint controlTimeoutMs);
+    /// <summary>What the board reported at open.</summary>
     [DllImport(Library, EntryPoint = "mimusb_device_board_info", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result DeviceBoardInfo(nint device, ref DeviceInfo info);
+    /// <summary>What the board reported at open.</summary>
     [DllImport(Library, EntryPoint = "mimusb_device_board_info", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result DeviceBoardInfo(nint device, nint info);
+    /// <summary>The limits of the board.</summary>
     [DllImport(Library, EntryPoint = "mimusb_device_limits", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result DeviceLimits(nint device, ref BoardLimits limits);
+    /// <summary>The limits of the board.</summary>
     [DllImport(Library, EntryPoint = "mimusb_device_limits", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result DeviceLimits(nint device, nint limits);
+    /// <summary>With reset nonzero the board's counters are zeroed after being read.</summary>
     [DllImport(Library, EntryPoint = "mimusb_device_link_counters", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result DeviceLinkCounters(nint device, uint reset, uint controlTimeoutMs, ref LinkCounters counters);
+    /// <summary>With reset nonzero the board's counters are zeroed after being read.</summary>
     [DllImport(Library, EntryPoint = "mimusb_device_link_counters", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result DeviceLinkCounters(nint device, uint reset, uint controlTimeoutMs, nint counters);
+    /// <summary>Replaces the Device's own rules, which come after those of the Nodes.</summary>
     [DllImport(Library, EntryPoint = "mimusb_device_set_control_rules", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result DeviceSetControlRules(nint device, uint reportAll, in ControlRule rules, nuint ruleCount, uint controlTimeoutMs);
+    /// <summary>Replaces the Device's own rules, which come after those of the Nodes.</summary>
     [DllImport(Library, EntryPoint = "mimusb_device_set_control_rules", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result DeviceSetControlRules(nint device, uint reportAll, nint rules, nuint ruleCount, uint controlTimeoutMs);
+    /// <summary>Changes the bytes of ANSWER rule number rule_index of mimusb_device_set_control_rules, up to the length its data had when the rules were set.</summary>
     [DllImport(Library, EntryPoint = "mimusb_device_set_rule_data", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result DeviceSetRuleData(nint device, nuint ruleIndex, nint data, nuint length, uint controlTimeoutMs);
+    /// <summary>As mimusb_device_set_rule_data for rule number rule_index of the Node's own rules: the extra_rules of its placement first, then the rules its Spec brings (mimusb_node_find_rule finds one the Spec names).</summary>
     [DllImport(Library, EntryPoint = "mimusb_node_set_rule_data", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result NodeSetRuleData(nint node, nuint ruleIndex, nint data, nuint length, uint controlTimeoutMs);
+    /// <summary>Finds the rule the Spec of a Node names with `slot` (mimusb_rule_slot) among the Node's own rules, so that mimusb_node_set_rule_data can change its bytes: *out_rule_index is its number, which counts the Node's extra_rules first (a Node has them before the rules of its Spec).</summary>
     [DllImport(Library, EntryPoint = "mimusb_node_find_rule", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result NodeFindRule(nint node, RuleSlot slot, out nuint ruleIndex);
+    /// <summary>Answers the held transfer of token (from MIMUSB_EVENT_CONTROL_SETUP with the HELD flag, or from MIMUSB_EVENT_CONTROL_DATA for the verdict of a host-to-device transfer) with action: ANSWER (data is the data stage of a device-to-host request, empty otherwise, or the acknowledging verdict), STALL, DROP (data empty) or LEAVE (the board's own handling).</summary>
     [DllImport(Library, EntryPoint = "mimusb_device_control_reply", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result DeviceControlReply(nint device, uint token, ControlAction action, nint data, nuint length, uint sendTimeoutMs);
+    /// <summary>enabled 1 makes the board report the transfers it drops because a queue is full (MIMUSB_EVENT_TRANSFER_LOST), at most one event per interval_ms (0 to MIMUSB_LOSS_MAX_INTERVAL_MS; 0 reports each time).</summary>
     [DllImport(Library, EntryPoint = "mimusb_device_set_loss_reporting", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result DeviceSetLossReporting(nint device, uint enabled, uint intervalMs, uint controlTimeoutMs);
+    /// <summary>Stores a string descriptor (in the Device's language_id) and returns its index, for the caller's own class descriptors.</summary>
     [DllImport(Library, EntryPoint = "mimusb_device_add_string", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result DeviceAddString(nint device, nint utf8, nint index);
+    /// <summary>Forgets a string given by mimusb_device_add_string; the next commit no longer sends it.</summary>
     [DllImport(Library, EntryPoint = "mimusb_device_remove_string", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result DeviceRemoveString(nint device, byte index);
+    /// <summary>Stores a string descriptor exactly as it goes on the bus: index 1 to 255, a nonzero language_id (USB 2.0 9.6.7) and unit_count UTF-16 code units (1 to 126).</summary>
     [DllImport(Library, EntryPoint = "mimusb_device_set_string", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result DeviceSetString(nint device, byte index, ushort languageId, nint units, nuint unitCount);
+    /// <summary>Forgets a string given by mimusb_device_set_string; the next commit no longer sends it.</summary>
     [DllImport(Library, EntryPoint = "mimusb_device_clear_string", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result DeviceClearString(nint device, byte index, ushort languageId);
+    /// <summary>For a Device composed from Nodes: stores the Binary Object Store descriptor (USB 3.2 9.6.2); length 0 removes it.</summary>
     [DllImport(Library, EntryPoint = "mimusb_device_set_bos", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result DeviceSetBos(nint device, nint bytes, nuint length);
+    /// <summary>Presents the bytes unchanged; usb_device, usb_config and their strings are not used.</summary>
     [DllImport(Library, EntryPoint = "mimusb_device_set_descriptors", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result DeviceSetDescriptors(nint device, in DeviceDescriptors descriptors, in CommitTimeouts timeouts);
+    /// <summary>Presents the bytes unchanged; usb_device, usb_config and their strings are not used.</summary>
     [DllImport(Library, EntryPoint = "mimusb_device_set_descriptors", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result DeviceSetDescriptors(nint device, nint descriptors, nint timeouts);
+    /// <summary>Forgets the descriptors, the policies of their endpoints and what the board held for them; Nodes can be opened again.</summary>
     [DllImport(Library, EntryPoint = "mimusb_device_clear_descriptors", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result DeviceClearDescriptors(nint device, in CommitTimeouts timeouts);
+    /// <summary>Forgets the descriptors, the policies of their endpoints and what the board held for them; Nodes can be opened again.</summary>
     [DllImport(Library, EntryPoint = "mimusb_device_clear_descriptors", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result DeviceClearDescriptors(nint device, nint timeouts);
+    /// <summary>The policy of an IN endpoint of a Device given as bytes.</summary>
     [DllImport(Library, EntryPoint = "mimusb_device_endpoint_set_policy", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result DeviceEndpointSetPolicy(nint device, byte address, in EndpointPolicy policy, uint controlTimeoutMs);
+    /// <summary>The policy of an IN endpoint of a Device given as bytes.</summary>
     [DllImport(Library, EntryPoint = "mimusb_device_endpoint_set_policy", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result DeviceEndpointSetPolicy(nint device, byte address, nint policy, uint controlTimeoutMs);
+    /// <summary>As mimusb_node_endpoint_write, for an IN endpoint of a Device given as bytes.</summary>
     [DllImport(Library, EntryPoint = "mimusb_device_endpoint_write", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result DeviceEndpointWrite(nint device, byte address, nint data, nuint length, uint timeoutMs);
+    /// <summary>As mimusb_node_endpoint_stall for an endpoint of a Device given as bytes.</summary>
     [DllImport(Library, EntryPoint = "mimusb_device_endpoint_stall", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result DeviceEndpointStall(nint device, byte address, uint controlTimeoutMs);
+    /// <summary>As mimusb_node_endpoint_clear_stall for an endpoint of a Device given as bytes.</summary>
     [DllImport(Library, EntryPoint = "mimusb_device_endpoint_clear_stall", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result DeviceEndpointClearStall(nint device, byte address, uint controlTimeoutMs);
+    /// <summary>As mimusb_node_endpoint_flush for an IN endpoint of a Device given as bytes.</summary>
     [DllImport(Library, EntryPoint = "mimusb_device_endpoint_flush", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result DeviceEndpointFlush(nint device, byte address, uint controlTimeoutMs);
+    /// <summary>Makes a keyboard Spec.</summary>
     [DllImport(Library, EntryPoint = "mimusb_spec_create_keyboard", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result SpecCreateKeyboard(in KeyboardOptions options, out nint spec);
+    /// <summary>Makes a keyboard Spec.</summary>
     [DllImport(Library, EntryPoint = "mimusb_spec_create_keyboard", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result SpecCreateKeyboard(nint options, out nint spec);
+    /// <summary>Makes a mouse Spec.</summary>
     [DllImport(Library, EntryPoint = "mimusb_spec_create_mouse", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result SpecCreateMouse(in MouseOptions options, out nint spec);
+    /// <summary>Makes a mouse Spec.</summary>
     [DllImport(Library, EntryPoint = "mimusb_spec_create_mouse", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result SpecCreateMouse(nint options, out nint spec);
+    /// <summary>Makes a Spec of one-bit controls on a HUT page.</summary>
     [DllImport(Library, EntryPoint = "mimusb_spec_create_toggle", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result SpecCreateToggle(in ToggleOptions options, out nint spec);
+    /// <summary>Makes a Spec of one-bit controls on a HUT page.</summary>
     [DllImport(Library, EntryPoint = "mimusb_spec_create_toggle", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result SpecCreateToggle(nint options, out nint spec);
+    /// <summary>Makes a gamepad Spec.</summary>
     [DllImport(Library, EntryPoint = "mimusb_spec_create_gamepad", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result SpecCreateGamepad(in GamepadOptions options, out nint spec);
+    /// <summary>Makes a gamepad Spec.</summary>
     [DllImport(Library, EntryPoint = "mimusb_spec_create_gamepad", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result SpecCreateGamepad(nint options, out nint spec);
+    /// <summary>Makes a touchscreen Spec.</summary>
     [DllImport(Library, EntryPoint = "mimusb_spec_create_touchscreen", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result SpecCreateTouchscreen(in TouchscreenOptions options, out nint spec);
+    /// <summary>Makes a touchscreen Spec.</summary>
     [DllImport(Library, EntryPoint = "mimusb_spec_create_touchscreen", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result SpecCreateTouchscreen(nint options, out nint spec);
+    /// <summary>Makes a touchpad Spec.</summary>
     [DllImport(Library, EntryPoint = "mimusb_spec_create_touchpad", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result SpecCreateTouchpad(in TouchpadOptions options, out nint spec);
+    /// <summary>Makes a touchpad Spec.</summary>
     [DllImport(Library, EntryPoint = "mimusb_spec_create_touchpad", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result SpecCreateTouchpad(nint options, out nint spec);
+    /// <summary>Makes a pen Spec.</summary>
     [DllImport(Library, EntryPoint = "mimusb_spec_create_pen", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result SpecCreatePen(in PenOptions options, out nint spec);
+    /// <summary>Makes a pen Spec.</summary>
     [DllImport(Library, EntryPoint = "mimusb_spec_create_pen", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result SpecCreatePen(nint options, out nint spec);
+    /// <summary>Makes a digitizer Spec.</summary>
     [DllImport(Library, EntryPoint = "mimusb_spec_create_digitizer", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result SpecCreateDigitizer(in DigitizerOptions options, out nint spec);
+    /// <summary>Makes a digitizer Spec.</summary>
     [DllImport(Library, EntryPoint = "mimusb_spec_create_digitizer", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result SpecCreateDigitizer(nint options, out nint spec);
+    /// <summary>Makes a Spec from the caller's own HID report descriptor.</summary>
     [DllImport(Library, EntryPoint = "mimusb_spec_create_hid", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result SpecCreateHid(in HidOptions options, out nint spec);
+    /// <summary>Makes a Spec from the caller's own HID report descriptor.</summary>
     [DllImport(Library, EntryPoint = "mimusb_spec_create_hid", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result SpecCreateHid(nint options, out nint spec);
+    /// <summary>Makes a Spec of a CDC-ACM function (see mimusb_cdc_acm_options): two interfaces and the roles MIMUSB_ROLE_CDC_NOTIFY (interrupt), MIMUSB_ROLE_CDC_DATA_IN and MIMUSB_ROLE_CDC_DATA_OUT (bulk), all required.</summary>
     [DllImport(Library, EntryPoint = "mimusb_spec_create_cdc_acm", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result SpecCreateCdcAcm(in CdcAcmOptions options, out nint spec);
+    /// <summary>Makes a Spec of a CDC-ACM function (see mimusb_cdc_acm_options): two interfaces and the roles MIMUSB_ROLE_CDC_NOTIFY (interrupt), MIMUSB_ROLE_CDC_DATA_IN and MIMUSB_ROLE_CDC_DATA_OUT (bulk), all required.</summary>
     [DllImport(Library, EntryPoint = "mimusb_spec_create_cdc_acm", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result SpecCreateCdcAcm(nint options, out nint spec);
+    /// <summary>Makes a Spec of any class from interfaces written out.</summary>
     [DllImport(Library, EntryPoint = "mimusb_spec_create_interfaces", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result SpecCreateInterfaces(in NodeConfig config, out nint spec);
+    /// <summary>Makes a Spec of any class from interfaces written out.</summary>
     [DllImport(Library, EntryPoint = "mimusb_spec_create_interfaces", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result SpecCreateInterfaces(nint config, out nint spec);
+    /// <summary>Lists the endpoint roles of a Spec in order and whether each is required, so a caller sees what its placement must give.</summary>
     [DllImport(Library, EntryPoint = "mimusb_spec_roles", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result SpecRoles(nint spec, ref RoleInfo roles, nuint capacity, out nuint count);
+    /// <summary>Lists the endpoint roles of a Spec in order and whether each is required, so a caller sees what its placement must give.</summary>
     [DllImport(Library, EntryPoint = "mimusb_spec_roles", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result SpecRoles(nint spec, nint roles, nuint capacity, out nuint count);
+    /// <summary>The number of interfaces a Node of the Spec takes on the bus: 1 for a HID Spec, 2 for a CDC-ACM Spec, the length of the configuration for a Spec of mimusb_spec_create_interfaces.</summary>
     [DllImport(Library, EntryPoint = "mimusb_spec_interface_count", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result SpecInterfaceCount(nint spec, out nuint count);
+    /// <summary>What a Node of the Spec adds to the board's control rule memory, not counting the extra_rules of its placement: the number of rules and the bytes of their ANSWER data.</summary>
     [DllImport(Library, EntryPoint = "mimusb_spec_rule_cost", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result SpecRuleCost(nint spec, out nuint rules, out nuint answerBytes);
+    /// <summary>Adds a reference to a Spec.</summary>
     [DllImport(Library, EntryPoint = "mimusb_spec_retain", ExactSpelling = true, CallingConvention = Call)]
     public static extern void SpecRetain(nint spec);
+    /// <summary>Gives up a reference to a Spec.</summary>
     [DllImport(Library, EntryPoint = "mimusb_spec_release", ExactSpelling = true, CallingConvention = Call)]
     public static extern void SpecRelease(nint spec);
+    /// <summary>The report descriptor of a Spec.</summary>
     [DllImport(Library, EntryPoint = "mimusb_spec_descriptor", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result SpecDescriptor(nint spec, out nint bytes, out nuint length);
+    /// <summary>What a Spec sends.</summary>
     [DllImport(Library, EntryPoint = "mimusb_spec_manifest", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result SpecManifest(nint spec, ref CapabilityManifest manifest);
+    /// <summary>What a Spec sends.</summary>
     [DllImport(Library, EntryPoint = "mimusb_spec_manifest", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result SpecManifest(nint spec, nint manifest);
+    /// <summary>Opens a Node of any class: spec says what it is, placement says where it goes.</summary>
     [DllImport(Library, EntryPoint = "mimusb_node_open", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result NodeOpen(nint device, nint spec, in NodePlacement placement, in CommitTimeouts timeouts, out nint node);
+    /// <summary>Opens a Node of any class: spec says what it is, placement says where it goes.</summary>
     [DllImport(Library, EntryPoint = "mimusb_node_open", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result NodeOpen(nint device, nint spec, nint placement, nint timeouts, out nint node);
+    /// <summary>Closing a Node whose interface number is not the highest in use leaves a gap: the Node is gone, the commit fails with MIMUSB_ERR_PARAM, and a later commit succeeds once the gap is closed.</summary>
     [DllImport(Library, EntryPoint = "mimusb_node_close", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result NodeClose(nint node, in CommitTimeouts timeouts, uint drainTimeoutMs);
+    /// <summary>Closing a Node whose interface number is not the highest in use leaves a gap: the Node is gone, the commit fails with MIMUSB_ERR_PARAM, and a later commit succeeds once the gap is closed.</summary>
     [DllImport(Library, EntryPoint = "mimusb_node_close", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result NodeClose(nint node, nint timeouts, uint drainTimeoutMs);
+    /// <summary>The number the board knows a Node by.</summary>
     [DllImport(Library, EntryPoint = "mimusb_node_id", ExactSpelling = true, CallingConvention = Call)]
     public static extern ushort NodeId(nint node);
+    /// <summary>Sets what the board answers (the bytes after the Report ID, at most max_feature_bytes) when the target reads Feature report report_id of this Node.</summary>
     [DllImport(Library, EntryPoint = "mimusb_node_set_feature_response", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result NodeSetFeatureResponse(nint node, byte reportId, nint data, nuint length, uint controlTimeoutMs);
+    /// <summary>Changes what an IN endpoint does when its queue is full and how many transfers may wait.</summary>
     [DllImport(Library, EntryPoint = "mimusb_node_endpoint_set_policy", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result NodeEndpointSetPolicy(nint node, byte address, in EndpointPolicy policy, uint controlTimeoutMs);
+    /// <summary>Changes what an IN endpoint does when its queue is full and how many transfers may wait.</summary>
     [DllImport(Library, EntryPoint = "mimusb_node_endpoint_set_policy", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result NodeEndpointSetPolicy(nint node, byte address, nint policy, uint controlTimeoutMs);
+    /// <summary>Sends data as one USB transfer on an IN endpoint of a Node.</summary>
     [DllImport(Library, EntryPoint = "mimusb_node_endpoint_write", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result NodeEndpointWrite(nint node, byte address, nint data, nuint length, uint timeoutMs);
+    /// <summary>Sets the Halt feature of an endpoint of a Node (USB 2.0 9.4.5): the endpoint answers STALL until it is cleared by mimusb_node_endpoint_clear_stall or by the target.</summary>
     [DllImport(Library, EntryPoint = "mimusb_node_endpoint_stall", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result NodeEndpointStall(nint node, byte address, uint controlTimeoutMs);
+    /// <summary>As mimusb_node_endpoint_stall, clearing the Halt feature: an IN endpoint goes on with what waits, an OUT endpoint accepts packets again.</summary>
     [DllImport(Library, EntryPoint = "mimusb_node_endpoint_clear_stall", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result NodeEndpointClearStall(nint node, byte address, uint controlTimeoutMs);
+    /// <summary>Drops what waits on an IN endpoint of the board; a transfer the board's controller already has completes.</summary>
     [DllImport(Library, EntryPoint = "mimusb_node_endpoint_flush", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result NodeEndpointFlush(nint node, byte address, uint controlTimeoutMs);
+    /// <summary>What a Node sends.</summary>
     [DllImport(Library, EntryPoint = "mimusb_node_manifest", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result NodeManifest(nint node, ref CapabilityManifest manifest);
+    /// <summary>What a Node sends.</summary>
     [DllImport(Library, EntryPoint = "mimusb_node_manifest", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result NodeManifest(nint node, nint manifest);
+    /// <summary>Sends the Node's current state as a report.</summary>
     [DllImport(Library, EntryPoint = "mimusb_node_submit", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result NodeSubmit(nint node, uint sendTimeoutMs);
+    /// <summary>Sends reports until the Node's state has been sent.</summary>
     [DllImport(Library, EntryPoint = "mimusb_node_submit_blocking", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result NodeSubmitBlocking(nint node, uint timeoutMs);
+    /// <summary>Presses (down 1) or releases (down 0) one Keyboard page Usage, a modifier or a key of the Spec's range.</summary>
     [DllImport(Library, EntryPoint = "mimusb_keyboard_key", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result KeyboardKey(nint node, ushort usage, uint down);
+    /// <summary>Adds to the pending X and Y movement.</summary>
     [DllImport(Library, EntryPoint = "mimusb_mouse_move", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result MouseMove(nint node, int dx, int dy);
+    /// <summary>Adds to the pending wheel and pan movement, as mimusb_mouse_move does.</summary>
     [DllImport(Library, EntryPoint = "mimusb_mouse_scroll", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result MouseScroll(nint node, int wheel, int pan);
+    /// <summary>Presses (down 1) or releases (down 0) button 1 to button_count.</summary>
     [DllImport(Library, EntryPoint = "mimusb_mouse_button", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result MouseButton(nint node, uint button, uint down);
+    /// <summary>Presses (down 1) or releases (down 0) one Usage of the Spec's allow-list; any number may be pressed at once.</summary>
     [DllImport(Library, EntryPoint = "mimusb_toggle_usage", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result ToggleUsage(nint node, ushort usage, uint down);
+    /// <summary>Presses (down 1) or releases (down 0) button 1 to button_count.</summary>
     [DllImport(Library, EntryPoint = "mimusb_gamepad_button", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result GamepadButton(nint node, uint button, uint down);
+    /// <summary>Sets axes[axis_index] of the Spec to value, which must be in its logical range.</summary>
     [DllImport(Library, EntryPoint = "mimusb_gamepad_axis", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result GamepadAxis(nint node, nuint axisIndex, int value);
+    /// <summary>Sets the D-pad from four 0/1 directions.</summary>
     [DllImport(Library, EntryPoint = "mimusb_gamepad_dpad", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result GamepadDpad(nint node, uint up, uint down, uint right, uint left);
+    /// <summary>down 1 places contact_id in a free slot, or moves it if already down; down 0 lifts it at x, y.</summary>
     [DllImport(Library, EntryPoint = "mimusb_touchscreen_contact", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result TouchscreenContact(nint node, uint contactId, uint down, int x, int y, in TouchscreenExtra extra);
+    /// <summary>down 1 places contact_id in a free slot, or moves it if already down; down 0 lifts it at x, y.</summary>
     [DllImport(Library, EntryPoint = "mimusb_touchscreen_contact", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result TouchscreenContact(nint node, uint contactId, uint down, int x, int y, nint extra);
+    /// <summary>As mimusb_touchscreen_contact, for a Touchpad Node.</summary>
     [DllImport(Library, EntryPoint = "mimusb_touchpad_contact", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result TouchpadContact(nint node, uint contactId, uint down, int x, int y, in TouchpadExtra extra);
+    /// <summary>As mimusb_touchscreen_contact, for a Touchpad Node.</summary>
     [DllImport(Library, EntryPoint = "mimusb_touchpad_contact", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result TouchpadContact(nint node, uint contactId, uint down, int x, int y, nint extra);
+    /// <summary>Presses (down 1) or releases (down 0) click button 1 to button_count.</summary>
     [DllImport(Library, EntryPoint = "mimusb_touchpad_button", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result TouchpadButton(nint node, uint button, uint down);
+    /// <summary>Sets the whole pen state.</summary>
     [DllImport(Library, EntryPoint = "mimusb_pen_update", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result PenUpdate(nint node, in PenSample sample);
+    /// <summary>Sets the whole pen state.</summary>
     [DllImport(Library, EntryPoint = "mimusb_pen_update", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result PenUpdate(nint node, nint sample);
+    /// <summary>As mimusb_pen_update, for a Digitizer Node.</summary>
     [DllImport(Library, EntryPoint = "mimusb_digitizer_update", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result DigitizerUpdate(nint node, in DigitizerSample sample);
+    /// <summary>As mimusb_pen_update, for a Digitizer Node.</summary>
     [DllImport(Library, EntryPoint = "mimusb_digitizer_update", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result DigitizerUpdate(nint node, nint sample);
+    /// <summary>Sets the battery level of a Node whose Spec has enable_battery.</summary>
     [DllImport(Library, EntryPoint = "mimusb_battery_update", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result BatteryUpdate(nint node, int strength);
+    /// <summary>Sends one report of a HID Spec's Node after checking it against the Spec's report table.</summary>
     [DllImport(Library, EntryPoint = "mimusb_hid_submit", ExactSpelling = true, CallingConvention = Call)]
     public static extern Result HidSubmit(nint node, nint report, nuint length, uint sendTimeoutMs);
+}
+
+/// <summary>A call did not return Result.Ok; carries the library's details of that result.</summary>
+public sealed class MimUsbException : Exception
+{
+    public Result Code { get; }
+    public string? Field { get; }
+    public string? Reason { get; }
+
+    public MimUsbException(Result code, string? field, string? reason)
+        : base(string.IsNullOrEmpty(field) ? code.ToString() : $"{code}: {field}: {reason}")
+    {
+        Code = code;
+        Field = field;
+        Reason = reason;
+    }
+
+    /// <summary>Does nothing for Result.Ok; otherwise throws with the details of this thread's last result. Call it right after the call that returned result.</summary>
+    public static void Check(Result result)
+    {
+        if (result == Result.Ok)
+        {
+            return;
+        }
+        var detail = Marshal.PtrToStructure<ErrorDetail>(Native.LastError());
+        throw new MimUsbException(result, Marshal.PtrToStringUTF8(detail.Field),
+                                  Marshal.PtrToStringUTF8(detail.Reason));
+    }
 }

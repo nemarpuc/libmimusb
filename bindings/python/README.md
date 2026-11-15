@@ -5,9 +5,9 @@ libmimusb C ABI. It deliberately contains no `.so`, `.dll`, or `.dylib`. Install
 the matching libmimusb shared distribution separately, then pass its exact path
 to `mimusb.load(path)`. The binding never guesses a native-library path. The C
 header's `*_init` functions are inline and not part of the binary ABI, so a
-`ctypes` structure starts all zero: set its `struct_size` and every required
-field yourself. A required field left zero is refused with
-`MIMUSB_ERR_UNSET_FIELD`.
+`ctypes` structure created without positional arguments has `struct_size` set
+to its size and every other field zero: set every required field yourself. A
+required field left zero is refused with `MIMUSB_ERR_UNSET_FIELD`.
 
 The Python package version and the native libmimusb version must match. Complete
 native archives, dependency notices, and an SPDX SBOM are published with the
@@ -15,3 +15,7 @@ corresponding GitHub Release.
 
 The declarations are generated from `include/mimusb.h` by
 `tools/bindings/generate.py`; do not edit `mimusb/native.py` by hand.
+
+`mimusb.check(library, result)` returns `result` when it is `MIMUSB_OK` and
+otherwise raises `mimusb.Error` carrying the result's name and the `field` and
+`reason` of the library's last error. Call it right after the call.
