@@ -201,7 +201,7 @@ jobs:
           PYTHONPATH=bindings/python python3 -c "
           import mimusb
           mimusb.load('$PWD/build_bindings/lib/libmimusb.so')"
-          python3 -m py_compile examples/python/enumerate.py
+          python3 -m py_compile examples/python/enumerate.py examples/python/keyboard.py
 
       - name: C# layout against compiled C, and the example
         run: |
@@ -209,6 +209,7 @@ jobs:
           dotnet run --project bindings/csharp/MimUsb.Tests/MimUsb.Tests.csproj \
             --configuration Release -- "$PWD/build_bindings/layout_oracle"
           dotnet build examples/csharp/Enumerate.csproj --configuration Release
+          dotnet build examples/csharp/Keyboard/Keyboard.csproj --configuration Release
 
       - name: Rust FFI layout against compiled C, and the example
         env:

@@ -55,4 +55,6 @@ package has one; `COMPONENTS static` asks for the static one), or from a source 
 
 `examples/python/enumerate.py`, `examples/csharp/Enumerate.csproj` and, in a source checkout, `bindings/rust/mimusb-sys/examples/enumerate.rs` list the boards `mimusb_discover` finds. They need the bindings (`bindings/` in a source checkout, or the `mimusb` wheel and `MimUsb` NuGet package) and a shared library of the same version. `mimusb_discover` messages every serial port of the host, so run them only when that is acceptable.
 
+`examples/python/keyboard.py LIBMIMUSB_PATH PORT BAUD_RATE`, `examples/csharp/Keyboard/Keyboard.csproj PORT BAUD_RATE` and, in a source checkout, `bindings/rust/mimusb-sys/examples/keyboard.rs PORT BAUD_RATE` open the board on PORT, present a keyboard and press Left Shift once. The Python and C# ones turn a failed call into an exception with the library's reason (`mimusb.check`, `MimUsbException.Check`); the Rust one does the same in a small function of its own. The target sees a new keyboard and a Shift press and release, so run it only with a board whose USB port is plugged into a machine where that is acceptable.
+
 `docs/EXAMPLES.md` in this package explains what each example demonstrates.

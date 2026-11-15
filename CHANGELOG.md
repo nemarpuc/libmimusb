@@ -4,6 +4,32 @@ All notable changes to libmimusb are recorded in this file.
 This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html); until 1.0.0 a
 change of the minor number may change the API, the ABI or the wire protocol.
 
+## [Unreleased]
+
+### Changed
+
+- `include/mimusb.h`: a function comment now starts with a one-sentence summary and lists
+  Ownership, Blocking and Synchronization only where they differ from the defaults stated at the
+  top of the header; Returns is unchanged. Long explanations that `docs/API.md` already holds are
+  shortened to a pointer. Statements with no measurement behind them (search and measurement
+  durations, "microseconds on an idle port") are removed from the header and from `docs/API.md`.
+- `tools/check_public_contracts.py` requires the summary line and one `Returns:` field; the other
+  three fields are optional.
+- Bindings: `tools/bindings/generate.py` carries the first sentence of each function and structure
+  comment into the generated Python docstrings, C# XML summaries and Rust doc comments.
+
+### Added
+
+- Python: a structure that has `struct_size` is created with it set to its size (every other field
+  stays zero); `mimusb.check(library, result)` raises `mimusb.Error` with the result name and the
+  `field` and `reason` of the last error when a call does not return `MIMUSB_OK`.
+- C#: `Init()` on every structure that has `StructSize` returns a zeroed structure with it set;
+  `MimUsbException.Check(result)` throws with the result and the details of the last error.
+- Examples: `examples/python/keyboard.py`, `examples/csharp/Keyboard/` and
+  `bindings/rust/mimusb-sys/examples/keyboard.rs` present a keyboard through a board and press
+  Left Shift once. The Python and Rust ones were run on an RP2040 board with 0.7.1 firmware; the
+  C# one was only built by CI.
+
 ## [0.7.2] - 2026-11-14
 
 ### Changed
