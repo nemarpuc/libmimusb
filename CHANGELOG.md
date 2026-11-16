@@ -6,6 +6,24 @@ change of the minor number may change the API, the ABI or the wire protocol.
 
 ## [Unreleased]
 
+### Added
+
+- Bindings: working values and an owning `Board` for the Python, C# and Rust bindings
+  (`mimusb.values` and `mimusb.Board`, `MimUsb.Values` and `Board`, `mimusb::values` and
+  `mimusb::Board`). The raw layer is unchanged: the C `*_init` functions and the generated structures
+  still set only `struct_size`. The values are those of `tests/fill_values.h`, compared byte for byte
+  by a test per language (`tests/abi/values_oracle.c`); the USB identity has no value and
+  `UsbIdentity.for_testing` (0x1209:0x0001) must be named. `Board` takes the port, baud rate and
+  identity, refuses a library or firmware of another version, gives each Node the next interface
+  number and IN endpoint within the board's limits, and closes the Device when it goes away.
+- Tests: `mimusb_sim_server` (`tests/sim/sim_server.c`) runs the simulated board as a program that
+  prints its pseudo-terminal's name, so the bindings' `Board` tests run against the real firmware
+  core in the CI `bindings` job.
+- Examples: short keyboard programs in the three languages (`examples/python/keyboard.py`,
+  `examples/csharp/Keyboard/`, `bindings/rust/mimusb/examples/keyboard_owned.rs`); the former ones
+  are kept as `keyboard_raw.py`, `examples/csharp/KeyboardRaw/` and
+  `bindings/rust/mimusb-sys/examples/keyboard_raw.rs`.
+
 ## [0.7.3] - 2026-11-15
 
 ### Changed
@@ -27,8 +45,8 @@ change of the minor number may change the API, the ABI or the wire protocol.
   `field` and `reason` of the last error when a call does not return `MIMUSB_OK`.
 - C#: `Init()` on every structure that has `StructSize` returns a zeroed structure with it set;
   `MimUsbException.Check(result)` throws with the result and the details of the last error.
-- Examples: `examples/python/keyboard.py`, `examples/csharp/Keyboard/` and
-  `bindings/rust/mimusb-sys/examples/keyboard.rs` present a keyboard through a board and press
+- Examples: `examples/python/keyboard_raw.py`, `examples/csharp/KeyboardRaw/` and
+  `bindings/rust/mimusb-sys/examples/keyboard_raw.rs` (then `keyboard.*`) present a keyboard through a board and press
   Left Shift once. The Python and Rust ones were run on an RP2040 board with 0.7.1 firmware; the
   C# one was only built by CI.
 

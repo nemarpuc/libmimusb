@@ -2,13 +2,19 @@
 // Copyright (c) 2026 libmimusb contributors
 //! Typed ownership/reference wrappers over `mimusb-sys`.
 //!
-//! The option structures are those of `mimusb-sys`, filled in by the caller. The
-//! initial values the C header's `*_init` functions use are listed in docs/API.md.
+//! The option structures are those of `mimusb-sys`; the C `*_init` functions (and so `Default`)
+//! fill none, but `values` has working ones. `Board` owns the Device on a serial port and lends out
+//! HID Nodes; dropping it closes the Device, which takes its Nodes with it.
 
 #![deny(unsafe_op_in_unsafe_fn)]
 
 use core::ptr::NonNull;
 use mimusb_sys as sys;
+
+mod board;
+pub mod values;
+
+pub use board::{Board, BoardError, Node, FLUSH};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct Error(pub sys::mimusb_result);

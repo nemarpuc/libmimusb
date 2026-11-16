@@ -178,6 +178,9 @@ jobs:
       - name: Select exact Rust toolchain
         run: rustup toolchain install 1.89.0 --profile minimal --no-self-update
 
+      - name: Fetch TinyUSB
+        run: .github/scripts/setup-tinyusb.sh "$HOME/tinyusb"
+
       - name: Check the generated files against the header
         run: python3 tools/bindings/generate.py --check
 
@@ -186,9 +189,12 @@ jobs:
           set -euo pipefail
           mkdir -p build_bindings
           cc -std=c11 -Wall -Wextra -Werror -Iinclude tests/abi/layout_oracle.c -o build_bindings/layout_oracle
+          # The tests are on for the values oracle and the simulated board (the firmware core on a
+          # pseudo-terminal); only those targets are built.
           cmake -S . -B build_bindings/lib -DCMAKE_BUILD_TYPE=Release \
-            -DMIMUSB_BUILD_STATIC=OFF -DMIMUSB_BUILD_TESTS=OFF -DMIMUSB_BUILD_EXAMPLES=OFF
-          cmake --build build_bindings/lib --parallel 4
+            -DMIMUSB_BUILD_STATIC=OFF -DMIMUSB_BUILD_TESTS=ON -DMIMUSB_BUILD_EXAMPLES=OFF \
+            -DMIMUSB_TINYUSB_PATH="$HOME/tinyusb"
+          cmake --build build_bindings/lib --target mimusb mimusb_abi_values_oracle mimusb_sim_server --parallel 4
 
       # No step runs the enumerate examples: mimusb_discover messages every serial port of the
       # host, and these runners are no place for that. They are built, and Python imports them.
@@ -198,22 +204,33 @@ jobs:
           PYTHONPATH=bindings/python python3 bindings/python/tests/test_contract.py
           PYTHONPATH=bindings/python MIMUSB_ABI_ORACLE="$PWD/build_bindings/layout_oracle" \
             python3 bindings/python/tests/test_layout.py
+          PYTHONPATH=bindings/python MIMUSB_VALUES_ORACLE="$PWD/build_bindings/lib/mimusb_abi_values_oracle" \
+            python3 bindings/python/tests/test_values.py
+          PYTHONPATH=bindings/python MIMUSB_LIBRARY="$PWD/build_bindings/lib/libmimusb.so" \
+            MIMUSB_SIM_SERVER="$PWD/build_bindings/lib/mimusb_sim_server" \
+            python3 bindings/python/tests/test_board.py
           PYTHONPATH=bindings/python python3 -c "
           import mimusb
           mimusb.load('$PWD/build_bindings/lib/libmimusb.so')"
-          python3 -m py_compile examples/python/enumerate.py examples/python/keyboard.py
+          python3 -m py_compile examples/python/enumerate.py examples/python/keyboard.py examples/python/keyboard_raw.py
 
-      - name: C# layout against compiled C, and the example
+      - name: C# layout and values against compiled C, the owning Board, and the examples
+        env:
+          LD_LIBRARY_PATH: ${{ github.workspace }}/build_bindings/lib
         run: |
           set -euo pipefail
           dotnet run --project bindings/csharp/MimUsb.Tests/MimUsb.Tests.csproj \
-            --configuration Release -- "$PWD/build_bindings/layout_oracle"
+            --configuration Release -- "$PWD/build_bindings/layout_oracle" \
+            "$PWD/build_bindings/lib/mimusb_abi_values_oracle" "$PWD/build_bindings/lib/mimusb_sim_server"
           dotnet build examples/csharp/Enumerate.csproj --configuration Release
           dotnet build examples/csharp/Keyboard/Keyboard.csproj --configuration Release
+          dotnet build examples/csharp/KeyboardRaw/KeyboardRaw.csproj --configuration Release
 
       - name: Rust FFI layout against compiled C, and the example
         env:
           MIMUSB_ABI_ORACLE: ${{ github.workspace }}/build_bindings/layout_oracle
+          MIMUSB_VALUES_ORACLE: ${{ github.workspace }}/build_bindings/lib/mimusb_abi_values_oracle
+          MIMUSB_SIM_SERVER: ${{ github.workspace }}/build_bindings/lib/mimusb_sim_server
           MIMUSB_LIB_DIR: ${{ github.workspace }}/build_bindings/lib
           LD_LIBRARY_PATH: ${{ github.workspace }}/build_bindings/lib
         run: |

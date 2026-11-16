@@ -1,17 +1,33 @@
 # MimUsb .NET binding
 
-This NuGet package contains only the managed P/Invoke declarations for the
-libmimusb C ABI. It does not contain `mimusb.dll` or `libmimusb.so`. Install the
-matching libmimusb shared distribution separately and make it available to the
-.NET native-library loader under the name `mimusb`.
+This NuGet package contains only managed code: the literal P/Invoke declarations of the libmimusb
+C ABI (`Native`), working values for them (`Values`) and an owning `Board`. It does not contain `mimusb.dll` or `libmimusb.so`.
+Install the matching libmimusb shared distribution separately and make it available to the .NET
+native-library loader under the name `mimusb`.
 
-The NuGet package version and native libmimusb version must match. Complete
-native archives, dependency notices, and SPDX documents are published with the
-corresponding GitHub Release. The C header's `*_init` functions are inline and
-not part of the binary ABI. `DeviceConfig.Init()` (and the same method of every
-structure that has `StructSize`) returns a zeroed structure with `StructSize`
-set; set every required field yourself. A required field left zero is refused
-with `Result.UnsetField`.
+```csharp
+using var board = new Board("/dev/ttyACM0", 115200, UsbIdentity.ForTesting("My keyboard")); // 0x1209:0x0001, for tests only
+var keyboard = board.Keyboard();
+board.WaitReady(TimeSpan.FromSeconds(5));   // after every Node is open
+keyboard.Tap(0xE1);                         // Left Shift down, send, up, send
+```
+
+- **Raw layer.** The C header's `*_init` functions only zero a structure and set `struct_size`, by
+  decision, and so does the generated `Init()` of every structure that has `StructSize`: set every
+  required field yourself. A required field left zero is refused with `Result.UnsetField`.
+- **Working values.** `Values` holds the numbers the library's own tests use (`tests/fill_values.h`),
+  each within `docs/LIMITS.md`; a test compares them byte for byte with that header. They mean nothing
+  for a product. The USB identity has no value: name `UsbIdentity.ForTesting` or give your own IDs and
+  strings.
+- **Board.** `Board` takes the port, the baud rate and the identity (nothing is searched for or
+  guessed), checks the library and firmware versions and the board's limits, gives each Node the next
+  interface number and IN endpoint, and closes the Device on `Dispose` (after 50 ms for the last
+  reports to leave). Nodes are not closed one by one: closing a Node re-enumerates the board's USB
+  device. Opening a Node is a commit too, so a board enumerates once per Node. `Handle` gives the raw
+  handle for `Native` calls. Calls are not thread-safe.
+
+The NuGet package version and native libmimusb version must match; `Board` checks it. Complete native
+archives, dependency notices, and SPDX documents are published with the corresponding GitHub Release.
 
 ## Callback lifetime
 

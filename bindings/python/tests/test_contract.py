@@ -1,6 +1,8 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 libmimusb contributors
-"""What the Python package promises: a small surface, and no value chosen for the caller.
+"""What the raw layer promises: a small surface, and no value chosen for the caller.
+
+The working values are mimusb.values (test_values.py); a structure made without them stays as here.
 
 The layout against the compiled C is test_layout.py, which is generated.
 """

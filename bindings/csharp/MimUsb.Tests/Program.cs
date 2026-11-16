@@ -8,9 +8,9 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using MimUsb;
 
-if (args.Length != 1)
+if (args.Length != 3)
 {
-    Console.Error.WriteLine("usage: MimUsb.Tests PATH_TO_LAYOUT_ORACLE");
+    Console.Error.WriteLine("usage: MimUsb.Tests PATH_TO_LAYOUT_ORACLE PATH_TO_VALUES_ORACLE PATH_TO_SIM_SERVER");
     return 2;
 }
 
@@ -529,6 +529,8 @@ Check("mimusb_digitizer_sample.pressure", (long)Marshal.OffsetOf<DigitizerSample
 Check("mimusb_digitizer_sample.tilt_x", (long)Marshal.OffsetOf<DigitizerSample>("TiltX"));
 Check("mimusb_digitizer_sample.tilt_y", (long)Marshal.OffsetOf<DigitizerSample>("TiltY"));
 Check("mimusb_digitizer_sample.twist", (long)Marshal.OffsetOf<DigitizerSample>("Twist"));
+
+failures.AddRange(HandChecks.Run(args));
 
 foreach (var failure in failures)
     Console.Error.WriteLine($"layout mismatch: {failure}");

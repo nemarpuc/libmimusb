@@ -178,6 +178,17 @@ pub struct mimusb_event {
     pub endpoint_address: u32,
     pub interface_number: u32,
 }
+
+impl Default for mimusb_event {
+    /// Zero with `struct_size` set, as the C `*_init` does.
+    fn default() -> Self {
+        // SAFETY: every field is an integer, a pointer, an optional function pointer or an array
+        // of them, and all-zero bytes are valid for each.
+        let mut value: Self = unsafe { core::mem::zeroed() };
+        value.struct_size = core::mem::size_of::<Self>() as u32;
+        value
+    }
+}
 pub type mimusb_event_sink = Option<unsafe extern "C" fn(a: *mut c_void, b: *const mimusb_event)>;
 
 /// A board found by mimusb_discover, or the one a Device has open.
@@ -227,6 +238,17 @@ pub struct mimusb_board_limits {
     pub max_bos_bytes: u32,
 }
 
+impl Default for mimusb_board_limits {
+    /// Zero with `struct_size` set, as the C `*_init` does.
+    fn default() -> Self {
+        // SAFETY: every field is an integer, a pointer, an optional function pointer or an array
+        // of them, and all-zero bytes are valid for each.
+        let mut value: Self = unsafe { core::mem::zeroed() };
+        value.struct_size = core::mem::size_of::<Self>() as u32;
+        value
+    }
+}
+
 /// What the board counted on its serial line since the last reset, each saturating at 65535.
 #[repr(C)]
 pub struct mimusb_link_counters {
@@ -237,6 +259,17 @@ pub struct mimusb_link_counters {
     pub uart_overrun: u32,
     pub ring_overrun: u32,
     pub probes_good: u32,
+}
+
+impl Default for mimusb_link_counters {
+    /// Zero with `struct_size` set, as the C `*_init` does.
+    fn default() -> Self {
+        // SAFETY: every field is an integer, a pointer, an optional function pointer or an array
+        // of them, and all-zero bytes are valid for each.
+        let mut value: Self = unsafe { core::mem::zeroed() };
+        value.struct_size = core::mem::size_of::<Self>() as u32;
+        value
+    }
 }
 
 /// The Device descriptor and its strings.
@@ -309,6 +342,17 @@ pub struct mimusb_device_config {
     pub usb_config: mimusb_usb_config,
 }
 
+impl Default for mimusb_device_config {
+    /// Zero with `struct_size` set, as the C `*_init` does.
+    fn default() -> Self {
+        // SAFETY: every field is an integer, a pointer, an optional function pointer or an array
+        // of them, and all-zero bytes are valid for each.
+        let mut value: Self = unsafe { core::mem::zeroed() };
+        value.struct_size = core::mem::size_of::<Self>() as u32;
+        value
+    }
+}
+
 /// The waits of a call that configures the board and enumerates its USB device again (a commit).
 #[repr(C)]
 pub struct mimusb_commit_timeouts {
@@ -316,6 +360,17 @@ pub struct mimusb_commit_timeouts {
     pub reserved: u32,
     pub control_timeout_ms: u32,
     pub reconnect_timeout_ms: u32,
+}
+
+impl Default for mimusb_commit_timeouts {
+    /// Zero with `struct_size` set, as the C `*_init` does.
+    fn default() -> Self {
+        // SAFETY: every field is an integer, a pointer, an optional function pointer or an array
+        // of them, and all-zero bytes are valid for each.
+        let mut value: Self = unsafe { core::mem::zeroed() };
+        value.struct_size = core::mem::size_of::<Self>() as u32;
+        value
+    }
 }
 
 #[repr(C)]
@@ -403,6 +458,17 @@ pub struct mimusb_node_config {
     pub rule_count: usize,
 }
 
+impl Default for mimusb_node_config {
+    /// Zero with `struct_size` set, as the C `*_init` does.
+    fn default() -> Self {
+        // SAFETY: every field is an integer, a pointer, an optional function pointer or an array
+        // of them, and all-zero bytes are valid for each.
+        let mut value: Self = unsafe { core::mem::zeroed() };
+        value.struct_size = core::mem::size_of::<Self>() as u32;
+        value
+    }
+}
+
 /// One role of a Spec and whether the placement must give it.
 #[repr(C)]
 pub struct mimusb_role_info {
@@ -432,6 +498,17 @@ pub struct mimusb_node_placement {
     pub extra_rule_count: usize,
 }
 
+impl Default for mimusb_node_placement {
+    /// Zero with `struct_size` set, as the C `*_init` does.
+    fn default() -> Self {
+        // SAFETY: every field is an integer, a pointer, an optional function pointer or an array
+        // of them, and all-zero bytes are valid for each.
+        let mut value: Self = unsafe { core::mem::zeroed() };
+        value.struct_size = core::mem::size_of::<Self>() as u32;
+        value
+    }
+}
+
 /// The HID function a Spec describes (HID 1.11 6.2.1, 4.2, 4.3): what the HID descriptor and the Interface descriptor of the Node say.
 #[repr(C)]
 pub struct mimusb_hid_function {
@@ -453,6 +530,17 @@ pub struct mimusb_device_descriptors {
     pub configuration_length: usize,
     pub bos: *const u8,
     pub bos_length: usize,
+}
+
+impl Default for mimusb_device_descriptors {
+    /// Zero with `struct_size` set, as the C `*_init` does.
+    fn default() -> Self {
+        // SAFETY: every field is an integer, a pointer, an optional function pointer or an array
+        // of them, and all-zero bytes are valid for each.
+        let mut value: Self = unsafe { core::mem::zeroed() };
+        value.struct_size = core::mem::size_of::<Self>() as u32;
+        value
+    }
 }
 
 /// The four HID 1.11 physical Global items for one field.
@@ -502,6 +590,17 @@ pub struct mimusb_keyboard_options {
     pub function: mimusb_hid_function,
 }
 
+impl Default for mimusb_keyboard_options {
+    /// Zero with `struct_size` set, as the C `*_init` does.
+    fn default() -> Self {
+        // SAFETY: every field is an integer, a pointer, an optional function pointer or an array
+        // of them, and all-zero bytes are valid for each.
+        let mut value: Self = unsafe { core::mem::zeroed() };
+        value.struct_size = core::mem::size_of::<Self>() as u32;
+        value
+    }
+}
+
 /// X, Y, wheel and pan are relative; their ranges must hold negative and positive values.
 #[repr(C)]
 pub struct mimusb_mouse_options {
@@ -518,6 +617,17 @@ pub struct mimusb_mouse_options {
     pub enable_battery: u32,
     pub battery: mimusb_battery_report,
     pub function: mimusb_hid_function,
+}
+
+impl Default for mimusb_mouse_options {
+    /// Zero with `struct_size` set, as the C `*_init` does.
+    fn default() -> Self {
+        // SAFETY: every field is an integer, a pointer, an optional function pointer or an array
+        // of them, and all-zero bytes are valid for each.
+        let mut value: Self = unsafe { core::mem::zeroed() };
+        value.struct_size = core::mem::size_of::<Self>() as u32;
+        value
+    }
 }
 
 /// One-bit controls on any HUT page: Consumer, System Control, Camera Control, Telephony, ...
@@ -538,6 +648,17 @@ pub struct mimusb_toggle_options {
     pub enable_battery: u32,
     pub battery: mimusb_battery_report,
     pub function: mimusb_hid_function,
+}
+
+impl Default for mimusb_toggle_options {
+    /// Zero with `struct_size` set, as the C `*_init` does.
+    fn default() -> Self {
+        // SAFETY: every field is an integer, a pointer, an optional function pointer or an array
+        // of them, and all-zero bytes are valid for each.
+        let mut value: Self = unsafe { core::mem::zeroed() };
+        value.struct_size = core::mem::size_of::<Self>() as u32;
+        value
+    }
 }
 
 /// One axis.
@@ -570,6 +691,17 @@ pub struct mimusb_gamepad_options {
     pub function: mimusb_hid_function,
 }
 
+impl Default for mimusb_gamepad_options {
+    /// Zero with `struct_size` set, as the C `*_init` does.
+    fn default() -> Self {
+        // SAFETY: every field is an integer, a pointer, an optional function pointer or an array
+        // of them, and all-zero bytes are valid for each.
+        let mut value: Self = unsafe { core::mem::zeroed() };
+        value.struct_size = core::mem::size_of::<Self>() as u32;
+        value
+    }
+}
+
 /// Fixed-slot Multi-Touch under the Digitizers / Touch Screen Application Collection.
 #[repr(C)]
 pub struct mimusb_touchscreen_options {
@@ -598,6 +730,17 @@ pub struct mimusb_touchscreen_options {
     pub enable_battery: u32,
     pub battery: mimusb_battery_report,
     pub function: mimusb_hid_function,
+}
+
+impl Default for mimusb_touchscreen_options {
+    /// Zero with `struct_size` set, as the C `*_init` does.
+    fn default() -> Self {
+        // SAFETY: every field is an integer, a pointer, an optional function pointer or an array
+        // of them, and all-zero bytes are valid for each.
+        let mut value: Self = unsafe { core::mem::zeroed() };
+        value.struct_size = core::mem::size_of::<Self>() as u32;
+        value
+    }
 }
 
 /// The touchscreen report under the Digitizers / Touch Pad Application Collection, plus button_count click buttons (0 for a buttonless clickpad).
@@ -631,6 +774,17 @@ pub struct mimusb_touchpad_options {
     pub function: mimusb_hid_function,
 }
 
+impl Default for mimusb_touchpad_options {
+    /// Zero with `struct_size` set, as the C `*_init` does.
+    fn default() -> Self {
+        // SAFETY: every field is an integer, a pointer, an optional function pointer or an array
+        // of them, and all-zero bytes are valid for each.
+        let mut value: Self = unsafe { core::mem::zeroed() };
+        value.struct_size = core::mem::size_of::<Self>() as u32;
+        value
+    }
+}
+
 /// A stylus under the Digitizers / Pen Application Collection (a direct, on-screen pen).
 #[repr(C)]
 pub struct mimusb_pen_options {
@@ -653,6 +807,17 @@ pub struct mimusb_pen_options {
     pub enable_battery: u32,
     pub battery: mimusb_battery_report,
     pub function: mimusb_hid_function,
+}
+
+impl Default for mimusb_pen_options {
+    /// Zero with `struct_size` set, as the C `*_init` does.
+    fn default() -> Self {
+        // SAFETY: every field is an integer, a pointer, an optional function pointer or an array
+        // of them, and all-zero bytes are valid for each.
+        let mut value: Self = unsafe { core::mem::zeroed() };
+        value.struct_size = core::mem::size_of::<Self>() as u32;
+        value
+    }
 }
 
 /// The pen report under the Digitizers / Digitizer Application Collection (an indirect tablet).
@@ -679,6 +844,17 @@ pub struct mimusb_digitizer_options {
     pub function: mimusb_hid_function,
 }
 
+impl Default for mimusb_digitizer_options {
+    /// Zero with `struct_size` set, as the C `*_init` does.
+    fn default() -> Self {
+        // SAFETY: every field is an integer, a pointer, an optional function pointer or an array
+        // of them, and all-zero bytes are valid for each.
+        let mut value: Self = unsafe { core::mem::zeroed() };
+        value.struct_size = core::mem::size_of::<Self>() as u32;
+        value
+    }
+}
+
 /// An Input report a generic HID Node may send: its Report ID and its exact length on the wire.
 #[repr(C)]
 pub struct mimusb_hid_report {
@@ -700,6 +876,17 @@ pub struct mimusb_hid_options {
     pub function: mimusb_hid_function,
 }
 
+impl Default for mimusb_hid_options {
+    /// Zero with `struct_size` set, as the C `*_init` does.
+    fn default() -> Self {
+        // SAFETY: every field is an integer, a pointer, an optional function pointer or an array
+        // of them, and all-zero bytes are valid for each.
+        let mut value: Self = unsafe { core::mem::zeroed() };
+        value.struct_size = core::mem::size_of::<Self>() as u32;
+        value
+    }
+}
+
 /// A CDC-ACM function (USB CDC 1.2 5.2.3; PSTN 1.2 5.3, 6.3): two interfaces, the communication interface (class 0x02, subclass 0x02; one interrupt IN endpoint for notifications) and the data interface (class 0x0A; a bulk IN and a bulk OUT endpoint), with the Interface Association descriptor that joins them and the rules that make it answer.
 #[repr(C)]
 pub struct mimusb_cdc_acm_options {
@@ -713,6 +900,17 @@ pub struct mimusb_cdc_acm_options {
     pub line_coding: [u8; 7],
     pub reserved8b: u8,
     pub data_name: *const c_char,
+}
+
+impl Default for mimusb_cdc_acm_options {
+    /// Zero with `struct_size` set, as the C `*_init` does.
+    fn default() -> Self {
+        // SAFETY: every field is an integer, a pointer, an optional function pointer or an array
+        // of them, and all-zero bytes are valid for each.
+        let mut value: Self = unsafe { core::mem::zeroed() };
+        value.struct_size = core::mem::size_of::<Self>() as u32;
+        value
+    }
 }
 
 #[repr(C)]
@@ -733,6 +931,17 @@ pub struct mimusb_capability_manifest {
     pub reports: *const mimusb_report_capability,
     pub report_count: usize,
     pub descriptor_length: usize,
+}
+
+impl Default for mimusb_capability_manifest {
+    /// Zero with `struct_size` set, as the C `*_init` does.
+    fn default() -> Self {
+        // SAFETY: every field is an integer, a pointer, an optional function pointer or an array
+        // of them, and all-zero bytes are valid for each.
+        let mut value: Self = unsafe { core::mem::zeroed() };
+        value.struct_size = core::mem::size_of::<Self>() as u32;
+        value
+    }
 }
 
 /// Optional values of one touch contact.

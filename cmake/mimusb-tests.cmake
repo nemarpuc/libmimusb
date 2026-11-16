@@ -139,6 +139,16 @@ add_test(NAME mimusb.abi-layout-oracle
         $<TARGET_FILE:mimusb_abi_layout_oracle>)
 
 # The public headers must be usable from C and from C++.
+add_executable(mimusb_abi_values_oracle tests/abi/values_oracle.c)
+target_include_directories(mimusb_abi_values_oracle PRIVATE include tests)
+set_target_properties(mimusb_abi_values_oracle PROPERTIES C_STANDARD 11 C_STANDARD_REQUIRED YES C_EXTENSIONS NO)
+if(NOT MSVC)
+    target_compile_options(mimusb_abi_values_oracle PRIVATE -Wall -Wextra -Wpedantic)
+    if(MIMUSB_WERROR)
+        target_compile_options(mimusb_abi_values_oracle PRIVATE -Werror)
+    endif()
+endif()
+
 add_executable(mimusb_c_abi_test tests/abi/test_c_abi.c)
 target_link_libraries(mimusb_c_abi_test PRIVATE mimusb::mimusb)
 if(MSVC)
@@ -210,6 +220,30 @@ if(MIMUSB_TINYUSB_PATH AND NOT WIN32)
         target_link_libraries(mimusb_sim_${itfs} PRIVATE Threads::Threads)
         add_test(NAME mimusb.sim-${itfs} COMMAND mimusb_sim_${itfs})
     endforeach()
+
+    # The same board as a program (prints its pseudo-terminal's name), for the language bindings' tests.
+    add_executable(mimusb_sim_server
+        tests/sim/sim_server.c
+        tests/sim/fake_board.c
+        tests/sim/pty_baud.c
+        firmware/common/core.c
+        firmware/common/control.c
+        firmware/common/ep0.c
+        firmware/common/usb_descriptors.c
+        firmware/common/generic.c
+        firmware/common/tx.c
+        $<TARGET_OBJECTS:mimusb_test_objects>)
+    target_include_directories(mimusb_sim_server PRIVATE
+        include src proto tests tests/sim ${mimusb_sim_limits_15}
+        firmware/tests firmware/common ${MIMUSB_TINYUSB_PATH}/src)
+    target_compile_definitions(mimusb_sim_server PRIVATE
+        SIM_ENDPOINTS=15
+        MIMUSB_MAX_ENDPOINT_NUMBER=15 MIMUSB_MAX_ENDPOINT_BYTES=64
+        CFG_TUSB_OS=OPT_OS_NONE
+        "CFG_TUSB_RHPORT0_MODE=(OPT_MODE_DEVICE|OPT_MODE_FULL_SPEED)"
+        CFG_TUD_MAX_SPEED=OPT_MODE_FULL_SPEED
+        CFG_TUSB_CONFIG_FILE="tusb_config.h")
+    target_link_libraries(mimusb_sim_server PRIVATE Threads::Threads)
 
     # A full-speed board with isochronous endpoints, as the RP2040 build is (firmware/CMakeLists.txt):
     # alternate settings, SET_INTERFACE and the isochronous endpoints of a Device given as bytes.
