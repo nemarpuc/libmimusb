@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 libmimusb contributors
-// The checks of the hand-written code: Values against the bytes tests/fill_values.h produces (args[1]
+// The checks of the hand-written code: the Init() values (Initial.cs) against the bytes tests/fill_values.h produces (args[1]
 // names the built mimusb_abi_values_oracle; pointer fields are compared by being null or not), and Board
 // against the simulated board (args[2] names the built mimusb_sim_server: the real firmware core on a
 // pseudo-terminal; the native loader must find libmimusb as "mimusb").
@@ -73,7 +73,7 @@ internal static class HandChecks
         }
 
         var identity = new UsbIdentity(0x1209, 0x0001, "libmimusb", "libmimusb");
-        using (var config = Values.DeviceConfig(115200, identity))
+        using (var config = Setup.DeviceConfig(115200, identity))
         {
             var transport = At<DeviceConfig>("Transport");
             var usb = At<DeviceConfig>("UsbDevice");
@@ -83,22 +83,26 @@ internal static class HandChecks
                 usb + At<UsbDevice>("Manufacturer"), usb + At<UsbDevice>("Product"), usb + At<UsbDevice>("Serial"),
                 At<DeviceConfig>("UsbConfig") + At<UsbConfig>("String"));
         }
-        Compare("commit_timeouts", Values.CommitTimeouts());
-        Compare("keyboard_options", Values.KeyboardOptions());
-        Compare("mouse_options", Values.MouseOptions());
-        Compare("toggle_options", Values.ToggleOptions(),
+        var bare = DeviceConfig.Init();
+        if (bare.Transport.BaudRate != 0 || bare.UsbDevice.VendorId != 0 || bare.UsbDevice.ProductId != 0
+            || bare.UsbDevice.Manufacturer != 0 || bare.UsbDevice.Product != 0)
+            failures.Add("values: DeviceConfig.Init() chose a baud rate or a USB identity");
+        Compare("commit_timeouts", CommitTimeouts.Init());
+        Compare("keyboard_options", KeyboardOptions.Init());
+        Compare("mouse_options", MouseOptions.Init());
+        Compare("toggle_options", ToggleOptions.Init(),
             At<ToggleOptions>("AllowedUsages"), At<ToggleOptions>("UsageSemantics"),
             At<ToggleOptions>("ExpectedLinuxEventTypes"), At<ToggleOptions>("ExpectedLinuxCodes"));
-        Compare("gamepad_options", Values.GamepadOptions(), At<GamepadOptions>("Axes"));
-        Compare("touchscreen_options", Values.TouchscreenOptions());
-        Compare("touchpad_options", Values.TouchpadOptions());
-        Compare("pen_options", Values.PenOptions(), At<PenOptions>("BarrelUsages"));
-        Compare("digitizer_options", Values.DigitizerOptions(), At<DigitizerOptions>("BarrelUsages"));
-        using (var placement = Values.HidPlacement(0))
+        Compare("gamepad_options", GamepadOptions.Init(), At<GamepadOptions>("Axes"));
+        Compare("touchscreen_options", TouchscreenOptions.Init());
+        Compare("touchpad_options", TouchpadOptions.Init());
+        Compare("pen_options", PenOptions.Init(), At<PenOptions>("BarrelUsages"));
+        Compare("digitizer_options", DigitizerOptions.Init(), At<DigitizerOptions>("BarrelUsages"));
+        using (var placement = Setup.HidPlacement(0))
             Compare("hid_endpoint0", Marshal.PtrToStructure<PlacedEndpoint>(placement.Placement.Endpoints).Endpoint);
-        using (var placement = Values.HidPlacement(3))
+        using (var placement = Setup.HidPlacement(3))
             Compare("hid_endpoint3", Marshal.PtrToStructure<PlacedEndpoint>(placement.Placement.Endpoints).Endpoint);
-        var gamepad = Values.GamepadOptions();
+        var gamepad = GamepadOptions.Init();
         var size = Marshal.SizeOf<GamepadAxisOption>();
         var codes = Enumerable.Range(0, (int)gamepad.AxisCount)
             .Select(i => Marshal.PtrToStringUTF8(Marshal.PtrToStructure<GamepadAxisOption>(gamepad.Axes + i * size).ExpectedLinuxCode));
@@ -131,7 +135,7 @@ internal static class HandChecks
                 mouse.SubmitBlocking();
                 gamepad.Axis(0, 100);
                 gamepad.SubmitBlocking();
-                var bad = Values.KeyboardOptions();
+                var bad = KeyboardOptions.Init();
                 bad.UsageMinimum = 0;
                 try
                 {

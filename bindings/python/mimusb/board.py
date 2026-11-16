@@ -4,7 +4,7 @@
 
 Nothing is picked for the caller: the port, the baud rate and the USB identity are arguments, and
 the board is never searched for. Each HID Node gets the next interface number and IN endpoint
-(``values.HidPlacement``), checked against the board's limits. A Node is not closed by itself:
+(``initial.HidPlacement``), checked against the board's limits. A Node is not closed by itself:
 closing one re-enumerates the board's USB device (docs/API.md ``mimusb_node_close``), so ``close``
 of the Board closes the Device, which takes its Nodes with it. Calls are not thread-safe, as the C
 ABI requires. Every object has ``.raw`` (the ctypes handle) to drop to the raw calls.
@@ -16,7 +16,7 @@ import ctypes as c
 import time
 from typing import Callable, Optional, cast
 
-from . import native as n, values
+from . import initial, native as n
 
 __all__ = ["Board", "Node"]
 
@@ -30,7 +30,7 @@ def _error(field: str, reason: str) -> n.Error:
 
 
 class Board:
-    def __init__(self, library_path, port: str, baud_rate: int, identity: values.UsbIdentity, *,
+    def __init__(self, library_path, port: str, baud_rate: int, identity: initial.UsbIdentity, *,
                  config: Optional[n.DeviceConfig] = None, timeouts: Optional[n.CommitTimeouts] = None,
                  wait_ready_ms: int = 5000) -> None:
         self.library = n.load(library_path)
@@ -40,9 +40,9 @@ class Board:
             raise _error("version", f"the library is version {found >> 24}.{(found >> 16) & 0xFF}.{found & 0xFFFF}, "
                          f"this package is {n.MIMUSB_VERSION_MAJOR}.{n.MIMUSB_VERSION_MINOR}.{n.MIMUSB_VERSION_PATCH}")
         self.wait_ready_ms = wait_ready_ms
-        self.timeouts = timeouts if timeouts is not None else values.commit_timeouts()
-        self._config = config if config is not None else values.device_config(baud_rate, identity)
-        self._placements: list[values.HidPlacement] = []
+        self.timeouts = timeouts if timeouts is not None else initial.commit_timeouts()
+        self._config = config if config is not None else initial.device_config(baud_rate, identity)
+        self._placements: list[initial.HidPlacement] = []
         self._nodes: list[Node] = []
         self.raw = n.DeviceP()
         self._check(self.library.mimusb_device_open(port.encode(), c.byref(self._config), c.byref(self.raw)))
@@ -72,7 +72,7 @@ class Board:
         spec = n.SpecP()
         self._check(getattr(self.library, create)(c.byref(options), c.byref(spec)))
         try:
-            placement = values.hid_placement(number)
+            placement = initial.hid_placement(number)
             raw = n.NodeP()
             self._check(self.library.mimusb_node_open(self.raw, spec, c.byref(placement.placement),
                                                       c.byref(self.timeouts), c.byref(raw)))
@@ -198,12 +198,12 @@ class DigitizerNode(Node):
 
 
 NODE_KINDS: dict[str, tuple[Callable, str, type]] = {
-    "keyboard": (values.keyboard_options, "mimusb_spec_create_keyboard", KeyboardNode),
-    "mouse": (values.mouse_options, "mimusb_spec_create_mouse", MouseNode),
-    "toggle": (values.toggle_options, "mimusb_spec_create_toggle", ToggleNode),
-    "gamepad": (values.gamepad_options, "mimusb_spec_create_gamepad", GamepadNode),
-    "touchscreen": (values.touchscreen_options, "mimusb_spec_create_touchscreen", TouchscreenNode),
-    "touchpad": (values.touchpad_options, "mimusb_spec_create_touchpad", TouchpadNode),
-    "pen": (values.pen_options, "mimusb_spec_create_pen", PenNode),
-    "digitizer": (values.digitizer_options, "mimusb_spec_create_digitizer", DigitizerNode),
+    "keyboard": (initial.keyboard_options, "mimusb_spec_create_keyboard", KeyboardNode),
+    "mouse": (initial.mouse_options, "mimusb_spec_create_mouse", MouseNode),
+    "toggle": (initial.toggle_options, "mimusb_spec_create_toggle", ToggleNode),
+    "gamepad": (initial.gamepad_options, "mimusb_spec_create_gamepad", GamepadNode),
+    "touchscreen": (initial.touchscreen_options, "mimusb_spec_create_touchscreen", TouchscreenNode),
+    "touchpad": (initial.touchpad_options, "mimusb_spec_create_touchpad", TouchpadNode),
+    "pen": (initial.pen_options, "mimusb_spec_create_pen", PenNode),
+    "digitizer": (initial.digitizer_options, "mimusb_spec_create_digitizer", DigitizerNode),
 }

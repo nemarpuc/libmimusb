@@ -1,7 +1,7 @@
 # mimusb Python binding
 
 This wheel contains only Python code: the literal `ctypes` declarations of the libmimusb C ABI
-(`mimusb.native`), working values for them (`mimusb.values`) and an owning `mimusb.Board`. It
+(`mimusb.native`), initial values for them (`mimusb.initial`) and an owning `mimusb.Board`. It
 deliberately contains no `.so`, `.dll`, or `.dylib`. Install the matching libmimusb shared
 distribution separately, then pass its exact path to `mimusb.load(path)` or `mimusb.Board(path, ...)`.
 The binding never guesses a native-library path.
@@ -19,7 +19,7 @@ with mimusb.Board("/path/to/libmimusb.so", "/dev/ttyACM0", 115200, identity) as 
 - **Raw layer.** The C header's `*_init` functions only zero a structure and set `struct_size`, by
   decision, and so does a `ctypes` structure created without positional arguments: set every required
   field yourself. A required field left zero is refused with `MIMUSB_ERR_UNSET_FIELD`.
-- **Working values.** `mimusb.values` holds the numbers the library's own tests use
+- **Initial values.** `mimusb.initial` (`keyboard_options()`, `device_config(baud_rate, identity)`, ...) holds the numbers the library's own tests use
   (`tests/fill_values.h`), each within `docs/LIMITS.md`; a test compares them byte for byte with that
   header. They mean nothing for a product. The USB identity has no value: name `UsbIdentity.for_testing`
   or give your own IDs and strings.

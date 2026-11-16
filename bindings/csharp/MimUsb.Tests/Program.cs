@@ -155,7 +155,6 @@ Check("mimusb_transport_options.log_level", (long)Marshal.OffsetOf<TransportOpti
 Check("mimusb_transport_options.log_sink", (long)Marshal.OffsetOf<TransportOptions>("LogSink"));
 Check("mimusb_transport_options.log_user", (long)Marshal.OffsetOf<TransportOptions>("LogUser"));
 if (new DeviceConfig().StructSize != 0) failures.Add("mimusb_device_config: new() fills struct_size");
-if (DeviceConfig.Init().StructSize != Marshal.SizeOf<DeviceConfig>()) failures.Add("mimusb_device_config: Init() does not set struct_size");
 Check("mimusb_device_config.size", Marshal.SizeOf<DeviceConfig>());
 Check("mimusb_device_config.struct_size", (long)Marshal.OffsetOf<DeviceConfig>("StructSize"));
 Check("mimusb_device_config.reserved", (long)Marshal.OffsetOf<DeviceConfig>("Reserved"));
@@ -164,7 +163,6 @@ Check("mimusb_device_config.target", (long)Marshal.OffsetOf<DeviceConfig>("Targe
 Check("mimusb_device_config.usb_device", (long)Marshal.OffsetOf<DeviceConfig>("UsbDevice"));
 Check("mimusb_device_config.usb_config", (long)Marshal.OffsetOf<DeviceConfig>("UsbConfig"));
 if (new CommitTimeouts().StructSize != 0) failures.Add("mimusb_commit_timeouts: new() fills struct_size");
-if (CommitTimeouts.Init().StructSize != Marshal.SizeOf<CommitTimeouts>()) failures.Add("mimusb_commit_timeouts: Init() does not set struct_size");
 Check("mimusb_commit_timeouts.size", Marshal.SizeOf<CommitTimeouts>());
 Check("mimusb_commit_timeouts.struct_size", (long)Marshal.OffsetOf<CommitTimeouts>("StructSize"));
 Check("mimusb_commit_timeouts.reserved", (long)Marshal.OffsetOf<CommitTimeouts>("Reserved"));
@@ -285,7 +283,6 @@ Check("mimusb_battery_report.size", Marshal.SizeOf<BatteryReport>());
 Check("mimusb_battery_report.report_id", (long)Marshal.OffsetOf<BatteryReport>("ReportId"));
 Check("mimusb_battery_report.strength", (long)Marshal.OffsetOf<BatteryReport>("Strength"));
 if (new KeyboardOptions().StructSize != 0) failures.Add("mimusb_keyboard_options: new() fills struct_size");
-if (KeyboardOptions.Init().StructSize != Marshal.SizeOf<KeyboardOptions>()) failures.Add("mimusb_keyboard_options: Init() does not set struct_size");
 Check("mimusb_keyboard_options.size", Marshal.SizeOf<KeyboardOptions>());
 Check("mimusb_keyboard_options.struct_size", (long)Marshal.OffsetOf<KeyboardOptions>("StructSize"));
 Check("mimusb_keyboard_options.reserved", (long)Marshal.OffsetOf<KeyboardOptions>("Reserved"));
@@ -296,7 +293,6 @@ Check("mimusb_keyboard_options.enable_battery", (long)Marshal.OffsetOf<KeyboardO
 Check("mimusb_keyboard_options.battery", (long)Marshal.OffsetOf<KeyboardOptions>("Battery"));
 Check("mimusb_keyboard_options.function", (long)Marshal.OffsetOf<KeyboardOptions>("Function"));
 if (new MouseOptions().StructSize != 0) failures.Add("mimusb_mouse_options: new() fills struct_size");
-if (MouseOptions.Init().StructSize != Marshal.SizeOf<MouseOptions>()) failures.Add("mimusb_mouse_options: Init() does not set struct_size");
 Check("mimusb_mouse_options.size", Marshal.SizeOf<MouseOptions>());
 Check("mimusb_mouse_options.struct_size", (long)Marshal.OffsetOf<MouseOptions>("StructSize"));
 Check("mimusb_mouse_options.reserved", (long)Marshal.OffsetOf<MouseOptions>("Reserved"));
@@ -312,7 +308,6 @@ Check("mimusb_mouse_options.enable_battery", (long)Marshal.OffsetOf<MouseOptions
 Check("mimusb_mouse_options.battery", (long)Marshal.OffsetOf<MouseOptions>("Battery"));
 Check("mimusb_mouse_options.function", (long)Marshal.OffsetOf<MouseOptions>("Function"));
 if (new ToggleOptions().StructSize != 0) failures.Add("mimusb_toggle_options: new() fills struct_size");
-if (ToggleOptions.Init().StructSize != Marshal.SizeOf<ToggleOptions>()) failures.Add("mimusb_toggle_options: Init() does not set struct_size");
 Check("mimusb_toggle_options.size", Marshal.SizeOf<ToggleOptions>());
 Check("mimusb_toggle_options.struct_size", (long)Marshal.OffsetOf<ToggleOptions>("StructSize"));
 Check("mimusb_toggle_options.reserved", (long)Marshal.OffsetOf<ToggleOptions>("Reserved"));
@@ -337,7 +332,6 @@ Check("mimusb_gamepad_axis_option.value", (long)Marshal.OffsetOf<GamepadAxisOpti
 Check("mimusb_gamepad_axis_option.neutral_value", (long)Marshal.OffsetOf<GamepadAxisOption>("NeutralValue"));
 Check("mimusb_gamepad_axis_option.expected_linux_code", (long)Marshal.OffsetOf<GamepadAxisOption>("ExpectedLinuxCode"));
 if (new GamepadOptions().StructSize != 0) failures.Add("mimusb_gamepad_options: new() fills struct_size");
-if (GamepadOptions.Init().StructSize != Marshal.SizeOf<GamepadOptions>()) failures.Add("mimusb_gamepad_options: Init() does not set struct_size");
 Check("mimusb_gamepad_options.size", Marshal.SizeOf<GamepadOptions>());
 Check("mimusb_gamepad_options.struct_size", (long)Marshal.OffsetOf<GamepadOptions>("StructSize"));
 Check("mimusb_gamepad_options.reserved", (long)Marshal.OffsetOf<GamepadOptions>("Reserved"));
@@ -354,7 +348,6 @@ Check("mimusb_gamepad_options.enable_battery", (long)Marshal.OffsetOf<GamepadOpt
 Check("mimusb_gamepad_options.battery", (long)Marshal.OffsetOf<GamepadOptions>("Battery"));
 Check("mimusb_gamepad_options.function", (long)Marshal.OffsetOf<GamepadOptions>("Function"));
 if (new TouchscreenOptions().StructSize != 0) failures.Add("mimusb_touchscreen_options: new() fills struct_size");
-if (TouchscreenOptions.Init().StructSize != Marshal.SizeOf<TouchscreenOptions>()) failures.Add("mimusb_touchscreen_options: Init() does not set struct_size");
 Check("mimusb_touchscreen_options.size", Marshal.SizeOf<TouchscreenOptions>());
 Check("mimusb_touchscreen_options.struct_size", (long)Marshal.OffsetOf<TouchscreenOptions>("StructSize"));
 Check("mimusb_touchscreen_options.reserved", (long)Marshal.OffsetOf<TouchscreenOptions>("Reserved"));
@@ -382,7 +375,6 @@ Check("mimusb_touchscreen_options.enable_battery", (long)Marshal.OffsetOf<Touchs
 Check("mimusb_touchscreen_options.battery", (long)Marshal.OffsetOf<TouchscreenOptions>("Battery"));
 Check("mimusb_touchscreen_options.function", (long)Marshal.OffsetOf<TouchscreenOptions>("Function"));
 if (new TouchpadOptions().StructSize != 0) failures.Add("mimusb_touchpad_options: new() fills struct_size");
-if (TouchpadOptions.Init().StructSize != Marshal.SizeOf<TouchpadOptions>()) failures.Add("mimusb_touchpad_options: Init() does not set struct_size");
 Check("mimusb_touchpad_options.size", Marshal.SizeOf<TouchpadOptions>());
 Check("mimusb_touchpad_options.struct_size", (long)Marshal.OffsetOf<TouchpadOptions>("StructSize"));
 Check("mimusb_touchpad_options.reserved", (long)Marshal.OffsetOf<TouchpadOptions>("Reserved"));
@@ -411,7 +403,6 @@ Check("mimusb_touchpad_options.enable_battery", (long)Marshal.OffsetOf<TouchpadO
 Check("mimusb_touchpad_options.battery", (long)Marshal.OffsetOf<TouchpadOptions>("Battery"));
 Check("mimusb_touchpad_options.function", (long)Marshal.OffsetOf<TouchpadOptions>("Function"));
 if (new PenOptions().StructSize != 0) failures.Add("mimusb_pen_options: new() fills struct_size");
-if (PenOptions.Init().StructSize != Marshal.SizeOf<PenOptions>()) failures.Add("mimusb_pen_options: Init() does not set struct_size");
 Check("mimusb_pen_options.size", Marshal.SizeOf<PenOptions>());
 Check("mimusb_pen_options.struct_size", (long)Marshal.OffsetOf<PenOptions>("StructSize"));
 Check("mimusb_pen_options.reserved", (long)Marshal.OffsetOf<PenOptions>("Reserved"));
@@ -433,7 +424,6 @@ Check("mimusb_pen_options.enable_battery", (long)Marshal.OffsetOf<PenOptions>("E
 Check("mimusb_pen_options.battery", (long)Marshal.OffsetOf<PenOptions>("Battery"));
 Check("mimusb_pen_options.function", (long)Marshal.OffsetOf<PenOptions>("Function"));
 if (new DigitizerOptions().StructSize != 0) failures.Add("mimusb_digitizer_options: new() fills struct_size");
-if (DigitizerOptions.Init().StructSize != Marshal.SizeOf<DigitizerOptions>()) failures.Add("mimusb_digitizer_options: Init() does not set struct_size");
 Check("mimusb_digitizer_options.size", Marshal.SizeOf<DigitizerOptions>());
 Check("mimusb_digitizer_options.struct_size", (long)Marshal.OffsetOf<DigitizerOptions>("StructSize"));
 Check("mimusb_digitizer_options.reserved", (long)Marshal.OffsetOf<DigitizerOptions>("Reserved"));

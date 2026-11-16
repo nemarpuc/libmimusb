@@ -4,7 +4,7 @@
 """Present a keyboard through the board on PORT and press Left Shift once.
 
 The board's USB port is plugged into the target, which sees a new keyboard and a Shift key press
-and release. The values are those of mimusb.values (the ones the tests use, within docs/LIMITS.md);
+and release. The values are those of mimusb.initial (the ones the tests use, within docs/LIMITS.md);
 UsbIdentity.for_testing is the vendor and product ID pid.codes sets aside for in-house testing: a
 device you hand out needs IDs of its own. keyboard_raw.py is the same program with every call and
 value spelled out.

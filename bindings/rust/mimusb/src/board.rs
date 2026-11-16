@@ -63,7 +63,7 @@ impl<R> Deref for Node<'_, R> {
 
 impl Board {
     /// Opens the board on `port` with `config` (see `values::device_config`) and the commit
-    /// timeouts of `values::commit_timeouts`.
+    /// timeouts of `mimusb_commit_timeouts::default()`.
     pub fn open(port: &CStr, config: DeviceConfig) -> Result<Self, BoardError> {
         let expected = (sys::MIMUSB_VERSION_MAJOR << 24) | (sys::MIMUSB_VERSION_MINOR << 16) | sys::MIMUSB_VERSION_PATCH;
         let found = unsafe { sys::mimusb_version() };
@@ -76,7 +76,7 @@ impl Board {
         // From here on the Board's Drop closes the Device on every early return.
         let mut board = Self {
             raw,
-            timeouts: values::commit_timeouts(),
+            timeouts: sys::mimusb_commit_timeouts::default(),
             limits: Default::default(),
             next: Cell::new(0),
             placements: RefCell::new(Vec::new()),
@@ -133,7 +133,7 @@ macro_rules! open_unsafe {
     ($method:ident, $spec:ident, $options:ty, $node:ident) => {
         /// # Safety
         /// Every pointer/count pair and nested C string in `options` must identify readable
-        /// storage for the duration of this call (the `values` options always do).
+        /// storage for the duration of this call (the `Default` options always do).
         pub unsafe fn $method(&self, options: &$options) -> Result<Node<'_, $node>, BoardError> {
             let spec = unsafe { $spec::create(options) }?;
             self.open_spec(spec.as_ptr(), |node| unsafe { $node::from_raw(node) })

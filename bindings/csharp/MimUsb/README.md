@@ -1,7 +1,7 @@
 # MimUsb .NET binding
 
 This NuGet package contains only managed code: the literal P/Invoke declarations of the libmimusb
-C ABI (`Native`), working values for them (`Values`) and an owning `Board`. It does not contain `mimusb.dll` or `libmimusb.so`.
+C ABI (`Native`), initial values for them (the `Init()` methods) and an owning `Board`. It does not contain `mimusb.dll` or `libmimusb.so`.
 Install the matching libmimusb shared distribution separately and make it available to the .NET
 native-library loader under the name `mimusb`.
 
@@ -13,12 +13,13 @@ keyboard.Tap(0xE1);                         // Left Shift down, send, up, send
 ```
 
 - **Raw layer.** The C header's `*_init` functions only zero a structure and set `struct_size`, by
-  decision, and so does the generated `Init()` of every structure that has `StructSize`: set every
-  required field yourself. A required field left zero is refused with `Result.UnsetField`.
-- **Working values.** `Values` holds the numbers the library's own tests use (`tests/fill_values.h`),
-  each within `docs/LIMITS.md`; a test compares them byte for byte with that header. They mean nothing
-  for a product. The USB identity has no value: name `UsbIdentity.ForTesting` or give your own IDs and
-  strings.
+  decision. `Native` chooses nothing, and the generated `Init()` of a structure the bindings give no
+  values (for example `NodeOptions`) returns it zeroed with `StructSize` set.
+- **Initial values.** `Init()` of `DeviceConfig`, `CommitTimeouts` and the profile options returns the
+  numbers the library's own tests use (`tests/fill_values.h`), each within `docs/LIMITS.md`; a test
+  compares them byte for byte with that header. They mean nothing for a product. `DeviceConfig.Init()`
+  leaves the baud rate and the USB identity empty: give your own IDs and strings, or name
+  `UsbIdentity.ForTesting`. A required field left zero is refused with `Result.UnsetField`.
 - **Board.** `Board` takes the port, the baud rate and the identity (nothing is searched for or
   guessed), checks the library and firmware versions and the board's limits, gives each Node the next
   interface number and IN endpoint, and closes the Device on `Dispose` (after 50 ms for the last

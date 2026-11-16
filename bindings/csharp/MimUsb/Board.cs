@@ -4,7 +4,7 @@
 //
 // Nothing is picked for the caller: the port, the baud rate and the USB identity are arguments, and the
 // board is never searched for. Each HID Node gets the next interface number and IN endpoint
-// (Values.HidPlacement), checked against the board's limits. A Node is not closed by itself: closing one
+// (Setup.HidPlacement), checked against the board's limits. A Node is not closed by itself: closing one
 // re-enumerates the board's USB device (docs/API.md mimusb_node_close), so disposing the Board closes the
 // Device, which takes its Nodes with it. Calls are not thread-safe, as the C ABI requires.
 using System.Runtime.InteropServices;
@@ -17,7 +17,7 @@ public sealed class Board : IDisposable
     public static readonly TimeSpan Flush = TimeSpan.FromMilliseconds(50);
 
     private readonly DeviceConfigOwner _config;
-    private readonly CommitTimeouts _timeouts = Values.CommitTimeouts();
+    private readonly CommitTimeouts _timeouts = CommitTimeouts.Init();
     private readonly List<HidPlacementOwner> _placements = new();
     private nint _device;
     private BoardLimits _limits = BoardLimits.Init();
@@ -31,7 +31,7 @@ public sealed class Board : IDisposable
             throw new MimUsbException(Result.Unsupported, "version",
                 $"the library is version {found >> 24}.{(found >> 16) & 0xFF}.{found & 0xFFFF}, this package is "
                 + $"{Native.MIMUSB_VERSION_MAJOR}.{Native.MIMUSB_VERSION_MINOR}.{Native.MIMUSB_VERSION_PATCH}");
-        _config = Values.DeviceConfig(baudRate, identity);
+        _config = Setup.DeviceConfig(baudRate, identity);
         var path = Marshal.StringToCoTaskMemUTF8(port);
         try
         {
@@ -75,7 +75,7 @@ public sealed class Board : IDisposable
         {
             if (_next >= _limits.MaxInterfacesAny || _next + 1 > _limits.MaxEndpointNumber)
                 throw new MimUsbException(Result.Unsupported, "nodes", "the board has no interface or endpoint number left for another Node");
-            var placement = Values.HidPlacement(_next);
+            var placement = Setup.HidPlacement(_next);
             _placements.Add(placement);
             var timeouts = _timeouts;
             MimUsbException.Check(Native.NodeOpen(_device, spec, in placement.Placement, in timeouts, out var raw));
@@ -90,14 +90,14 @@ public sealed class Board : IDisposable
 
     public KeyboardNode Keyboard(KeyboardOptions? options = null)
     {
-        var o = options ?? Values.KeyboardOptions();
+        var o = options ?? KeyboardOptions.Init();
         MimUsbException.Check(Native.SpecCreateKeyboard(in o, out var spec));
         return Open(spec, (b, raw) => new KeyboardNode(b, raw));
     }
 
     public MouseNode Mouse(MouseOptions? options = null)
     {
-        var o = options ?? Values.MouseOptions();
+        var o = options ?? MouseOptions.Init();
         MimUsbException.Check(Native.SpecCreateMouse(in o, out var spec));
         return Open(spec, (b, raw) => new MouseNode(b, raw));
     }
@@ -110,35 +110,35 @@ public sealed class Board : IDisposable
 
     public GamepadNode Gamepad(GamepadOptions? options = null)
     {
-        var o = options ?? Values.GamepadOptions();
+        var o = options ?? GamepadOptions.Init();
         MimUsbException.Check(Native.SpecCreateGamepad(in o, out var spec));
         return Open(spec, (b, raw) => new GamepadNode(b, raw));
     }
 
     public TouchscreenNode Touchscreen(TouchscreenOptions? options = null)
     {
-        var o = options ?? Values.TouchscreenOptions();
+        var o = options ?? TouchscreenOptions.Init();
         MimUsbException.Check(Native.SpecCreateTouchscreen(in o, out var spec));
         return Open(spec, (b, raw) => new TouchscreenNode(b, raw));
     }
 
     public TouchpadNode Touchpad(TouchpadOptions? options = null)
     {
-        var o = options ?? Values.TouchpadOptions();
+        var o = options ?? TouchpadOptions.Init();
         MimUsbException.Check(Native.SpecCreateTouchpad(in o, out var spec));
         return Open(spec, (b, raw) => new TouchpadNode(b, raw));
     }
 
     public PenNode Pen(PenOptions? options = null)
     {
-        var o = options ?? Values.PenOptions();
+        var o = options ?? PenOptions.Init();
         MimUsbException.Check(Native.SpecCreatePen(in o, out var spec));
         return Open(spec, (b, raw) => new PenNode(b, raw));
     }
 
     public DigitizerNode Digitizer(DigitizerOptions? options = null)
     {
-        var o = options ?? Values.DigitizerOptions();
+        var o = options ?? DigitizerOptions.Init();
         MimUsbException.Check(Native.SpecCreateDigitizer(in o, out var spec));
         return Open(spec, (b, raw) => new DigitizerNode(b, raw));
     }

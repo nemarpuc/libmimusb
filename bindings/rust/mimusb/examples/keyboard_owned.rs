@@ -3,13 +3,14 @@
 //! Presents a keyboard through the board on PORT and presses Left Shift once.
 //!
 //! The board's USB port is plugged into the target, which sees a new keyboard and a Shift key press
-//! and release. The values are those of `mimusb::values` (the ones the tests use, within
+//! and release. The values are those of the `Default` impls of `mimusb-sys` (the ones the tests use, within
 //! docs/LIMITS.md); `UsbIdentity::for_testing` is the vendor and product ID pid.codes sets aside for
 //! in-house testing: a device you hand out needs IDs of its own. `mimusb-sys`'s `keyboard_raw`
 //! example is the same program with every call and value spelled out.
 
 use mimusb::values::{self, UsbIdentity};
 use mimusb::Board;
+use mimusb_sys as sys;
 use std::ffi::CString;
 use std::{thread, time::Duration};
 
@@ -28,7 +29,7 @@ fn main() {
         eprintln!("{error:?}");
         std::process::exit(1);
     });
-    let keyboard = board.keyboard(&values::keyboard_options()).expect("keyboard");
+    let keyboard = board.keyboard(&sys::mimusb_keyboard_options::default()).expect("keyboard");
     board.wait_ready(Duration::from_secs(5)).expect("the target mounted the board");
     for down in [true, false] {
         keyboard.key(LEFT_SHIFT, down).expect("key");

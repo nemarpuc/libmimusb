@@ -95,12 +95,13 @@ Every options or output structure with `struct_size` has a static inline
 > Every enumeration starts at 1, so a zeroed field never selects a mode by
 > accident. `reserved` fields must stay zero, and a flag must be 0 or 1.
 >
-> The Python, C# and Rust bindings keep this raw layer (a structure created without arguments has
-> only `struct_size` set) and add working values beside it: `mimusb.values`, `MimUsb.Values` and
-> `mimusb::values`, with an owning `Board` that opens Nodes on the next free interface and endpoint.
-> They are the numbers of `tests/fill_values.h`, and a test per language compares them byte for byte
-> with that header. They mean nothing for a product, and the USB identity has none: it is always named
-> (`UsbIdentity.for_testing`) or given.
+> The Python, C# and Rust bindings keep the raw layer (a Python `ctypes` structure created without
+> arguments has only `struct_size` set) and give the structures they handle initial values:
+> `mimusb.initial`, the C# `Init()` methods and the Rust `Default` impls, with an owning `Board` that
+> opens Nodes on the next free interface and endpoint. They are the numbers of `tests/fill_values.h`,
+> and a test per language compares them byte for byte with that header. They mean nothing for a
+> product, and the baud rate and USB identity have none: they are given, or named
+> (`UsbIdentity.for_testing`).
 
 | Structure | Required (zero is refused) | Optional |
 |---|---|---|

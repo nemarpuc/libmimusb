@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 libmimusb contributors
-"""mimusb.values must equal the structures tests/fill_values.h fills, byte for byte.
+"""mimusb.initial must equal the structures tests/fill_values.h fills, byte for byte.
 
 MIMUSB_VALUES_ORACLE names the built mimusb_abi_values_oracle program. The oracle uses the test
 identity (strings "libmimusb", IDs 0x1209:0x0001) and baud rate 115200, so the binding is given the same.
@@ -15,7 +15,7 @@ import os
 import subprocess
 import sys
 
-from mimusb import UsbIdentity, native, values
+from mimusb import UsbIdentity, initial, native
 
 
 def pointer_spans(cls, base: int = 0):
@@ -47,18 +47,18 @@ def main() -> int:
     lines = dict(line.split("=", 1) for line in text.splitlines())
     identity = UsbIdentity(0x1209, 0x0001, "libmimusb", "libmimusb")
     built = {
-        "device_config": values.device_config(115200, identity),
-        "commit_timeouts": values.commit_timeouts(),
-        "keyboard_options": values.keyboard_options(),
-        "mouse_options": values.mouse_options(),
-        "toggle_options": values.toggle_options(),
-        "gamepad_options": values.gamepad_options(),
-        "touchscreen_options": values.touchscreen_options(),
-        "touchpad_options": values.touchpad_options(),
-        "pen_options": values.pen_options(),
-        "digitizer_options": values.digitizer_options(),
-        "hid_endpoint0": values.hid_placement(0).endpoint.endpoint,
-        "hid_endpoint3": values.hid_placement(3).endpoint.endpoint,
+        "device_config": initial.device_config(115200, identity),
+        "commit_timeouts": initial.commit_timeouts(),
+        "keyboard_options": initial.keyboard_options(),
+        "mouse_options": initial.mouse_options(),
+        "toggle_options": initial.toggle_options(),
+        "gamepad_options": initial.gamepad_options(),
+        "touchscreen_options": initial.touchscreen_options(),
+        "touchpad_options": initial.touchpad_options(),
+        "pen_options": initial.pen_options(),
+        "digitizer_options": initial.digitizer_options(),
+        "hid_endpoint0": initial.hid_placement(0).endpoint.endpoint,
+        "hid_endpoint3": initial.hid_placement(3).endpoint.endpoint,
     }
     failures = []
     for name, got in built.items():
@@ -67,7 +67,7 @@ def main() -> int:
         spans = pointer_spans(type(got))
         if len(raw) != len(want) or masked(raw, spans) != masked(want, spans):
             failures.append(f"{name}: bytes differ")
-    axes = values.gamepad_options().axes
+    axes = initial.gamepad_options().axes
     if lines["gamepad_axes"] != ",".join(axes[i].expected_linux_code.decode() for i in range(4)):
         failures.append("gamepad axes differ")
     usb = built["device_config"].usb_device

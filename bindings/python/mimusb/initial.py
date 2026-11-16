@@ -1,14 +1,14 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 libmimusb contributors
-"""Structures filled with working values; the C ``mimusb_*_init`` functions fill none.
+"""The initial values of this binding's option structures.
 
-The C initializers only set ``struct_size``: the USB identity, the strings, the timeouts, the baud
-rate, the endpoints and the Linux HID limits are the caller's (docs/API.md, "Structures and initial
-values"). These functions are a convenience of this binding, not of the library. The numbers are the
-ones the tests (tests/fill_values.h) and the examples have always used, each within the limits of
-docs/LIMITS.md; tests/test_values.py compares them with what that header produces. They mean nothing for a
-product: a device you hand out needs a USB identity of its own, so ``vendor_id``, ``product_id`` and
-the strings have no value here and ``UsbIdentity.for_testing`` has to be named.
+The C ``mimusb_*_init`` functions only zero a structure and set ``struct_size``, by decision, and a
+``ctypes`` structure created without arguments (``mimusb.native``) does the same. The functions here
+return the structure with the values the tests (tests/fill_values.h) and the examples have always used,
+each within the limits of docs/LIMITS.md; tests/test_initial.py compares them byte for byte with what
+that header produces. They mean nothing for a product: a device you hand out needs a USB identity of
+its own, so ``vendor_id``, ``product_id`` and the strings have no value here and
+``UsbIdentity.for_testing`` has to be named.
 
 Each function returns a plain ctypes structure; keyword arguments of the profile functions replace
 single fields, and any nested field can be changed on the result.

@@ -8,10 +8,10 @@ change of the minor number may change the API, the ABI or the wire protocol.
 
 ### Added
 
-- Bindings: working values and an owning `Board` for the Python, C# and Rust bindings
-  (`mimusb.values` and `mimusb.Board`, `MimUsb.Values` and `Board`, `mimusb::values` and
-  `mimusb::Board`). The raw layer is unchanged: the C `*_init` functions and the generated structures
-  still set only `struct_size`. The values are those of `tests/fill_values.h`, compared byte for byte
+- Bindings: initial values and an owning `Board` for the Python, C# and Rust bindings
+  (`mimusb.initial` and `mimusb.Board`, the C# `Init()` methods and `Board`, the Rust `Default` impls
+  and `mimusb::Board`), as in libaoahid. The C `*_init` functions are unchanged and still set only
+  `struct_size`; `DeviceConfig` leaves the baud rate and the USB identity empty. The values are those of `tests/fill_values.h`, compared byte for byte
   by a test per language (`tests/abi/values_oracle.c`); the USB identity has no value and
   `UsbIdentity.for_testing` (0x1209:0x0001) must be named. `Board` takes the port, baud rate and
   identity, refuses a library or firmware of another version, gives each Node the next interface

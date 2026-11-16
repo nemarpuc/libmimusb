@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 libmimusb contributors
-//! `mimusb::values` must equal the structures tests/fill_values.h fills, byte for byte.
+//! The `Default` values of `mimusb-sys` (and `values::device_config`) must equal the structures tests/fill_values.h fills, byte for byte.
 //! MIMUSB_VALUES_ORACLE names the built mimusb_abi_values_oracle program. The oracle uses the test
 //! identity (strings "libmimusb", IDs 0x1209:0x0001) and baud rate 115200, so the crate is given the
 //! same. Pointer fields are compared by being null or not.
@@ -32,7 +32,11 @@ fn masked(mut data: Vec<u8>, pointers: &[usize]) -> Vec<u8> {
 }
 
 #[test]
-fn values_equal_the_test_fill_values() {
+fn initial_values_equal_the_test_fill_values() {
+    let bare = sys::mimusb_device_config::default();
+    assert_eq!((bare.transport.baud_rate, bare.usb_device.vendor_id, bare.usb_device.product_id), (0, 0, 0));
+    assert!(bare.usb_device.manufacturer.is_null() && bare.usb_device.product.is_null());
+
     let path = std::env::var("MIMUSB_VALUES_ORACLE").expect("MIMUSB_VALUES_ORACLE is not set");
     let text = String::from_utf8(Command::new(path).output().expect("run the oracle").stdout).unwrap();
     let lines: BTreeMap<&str, &str> = text.lines().filter_map(|l| l.split_once('=')).collect();
@@ -56,21 +60,21 @@ fn values_equal_the_test_fill_values() {
         usb + offset_of!(sys::mimusb_usb_device, manufacturer), usb + offset_of!(sys::mimusb_usb_device, product),
         usb + offset_of!(sys::mimusb_usb_device, serial),
         offset_of!(sys::mimusb_device_config, usb_config) + offset_of!(sys::mimusb_usb_config, string)]);
-    check!("commit_timeouts", &values::commit_timeouts(), []);
-    check!("keyboard_options", &values::keyboard_options(), []);
-    check!("mouse_options", &values::mouse_options(), []);
-    check!("toggle_options", &values::toggle_options(), [
+    check!("commit_timeouts", &sys::mimusb_commit_timeouts::default(), []);
+    check!("keyboard_options", &sys::mimusb_keyboard_options::default(), []);
+    check!("mouse_options", &sys::mimusb_mouse_options::default(), []);
+    check!("toggle_options", &sys::mimusb_toggle_options::default(), [
         offset_of!(sys::mimusb_toggle_options, allowed_usages), offset_of!(sys::mimusb_toggle_options, usage_semantics),
         offset_of!(sys::mimusb_toggle_options, expected_linux_event_types), offset_of!(sys::mimusb_toggle_options, expected_linux_codes)]);
-    check!("gamepad_options", &values::gamepad_options(), [offset_of!(sys::mimusb_gamepad_options, axes)]);
-    check!("touchscreen_options", &values::touchscreen_options(), []);
-    check!("touchpad_options", &values::touchpad_options(), []);
-    check!("pen_options", &values::pen_options(), [offset_of!(sys::mimusb_pen_options, barrel_usages)]);
-    check!("digitizer_options", &values::digitizer_options(), [offset_of!(sys::mimusb_digitizer_options, barrel_usages)]);
+    check!("gamepad_options", &sys::mimusb_gamepad_options::default(), [offset_of!(sys::mimusb_gamepad_options, axes)]);
+    check!("touchscreen_options", &sys::mimusb_touchscreen_options::default(), []);
+    check!("touchpad_options", &sys::mimusb_touchpad_options::default(), []);
+    check!("pen_options", &sys::mimusb_pen_options::default(), [offset_of!(sys::mimusb_pen_options, barrel_usages)]);
+    check!("digitizer_options", &sys::mimusb_digitizer_options::default(), [offset_of!(sys::mimusb_digitizer_options, barrel_usages)]);
     check!("hid_endpoint0", &values::hid_placement(0).endpoint.endpoint, []);
     check!("hid_endpoint3", &values::hid_placement(3).endpoint.endpoint, []);
 
-    let gamepad = values::gamepad_options();
+    let gamepad = sys::mimusb_gamepad_options::default();
     let codes: Vec<String> = (0..gamepad.axis_count)
         .map(|i| unsafe { CStr::from_ptr((*gamepad.axes.add(i)).expected_linux_code) }.to_str().unwrap().to_owned())
         .collect();

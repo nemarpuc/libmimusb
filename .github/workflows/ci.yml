@@ -205,7 +205,7 @@ jobs:
           PYTHONPATH=bindings/python MIMUSB_ABI_ORACLE="$PWD/build_bindings/layout_oracle" \
             python3 bindings/python/tests/test_layout.py
           PYTHONPATH=bindings/python MIMUSB_VALUES_ORACLE="$PWD/build_bindings/lib/mimusb_abi_values_oracle" \
-            python3 bindings/python/tests/test_values.py
+            python3 bindings/python/tests/test_initial.py
           PYTHONPATH=bindings/python MIMUSB_LIBRARY="$PWD/build_bindings/lib/libmimusb.so" \
             MIMUSB_SIM_SERVER="$PWD/build_bindings/lib/mimusb_sim_server" \
             python3 bindings/python/tests/test_board.py

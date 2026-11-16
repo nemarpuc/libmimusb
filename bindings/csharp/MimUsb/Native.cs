@@ -287,7 +287,7 @@ public struct TransportOptions
 }
 
 [StructLayout(LayoutKind.Sequential)]
-public struct DeviceConfig
+public partial struct DeviceConfig
 {
     public uint StructSize;
     public uint Reserved;
@@ -295,22 +295,16 @@ public struct DeviceConfig
     public TargetLimits Target;
     public UsbDevice UsbDevice;
     public UsbConfig UsbConfig;
-
-    /// <summary>A zeroed structure with StructSize set, as the C *_init does.</summary>
-    public static DeviceConfig Init() => new() { StructSize = (uint)Marshal.SizeOf<DeviceConfig>() };
 }
 
 /// <summary>The waits of a call that configures the board and enumerates its USB device again (a commit).</summary>
 [StructLayout(LayoutKind.Sequential)]
-public struct CommitTimeouts
+public partial struct CommitTimeouts
 {
     public uint StructSize;
     public uint Reserved;
     public uint ControlTimeoutMs;
     public uint ReconnectTimeoutMs;
-
-    /// <summary>A zeroed structure with StructSize set, as the C *_init does.</summary>
-    public static CommitTimeouts Init() => new() { StructSize = (uint)Marshal.SizeOf<CommitTimeouts>() };
 }
 
 [StructLayout(LayoutKind.Sequential)]
@@ -511,7 +505,7 @@ public struct BatteryReport
 
 /// <summary>Full N-key rollover: one bit per Usage from usage_minimum (at least 0x04) to usage_maximum, plus the eight modifiers 0xE0 to 0xE7, which the range must not include.</summary>
 [StructLayout(LayoutKind.Sequential)]
-public struct KeyboardOptions
+public partial struct KeyboardOptions
 {
     public uint StructSize;
     public uint Reserved;
@@ -521,14 +515,11 @@ public struct KeyboardOptions
     public uint EnableBattery;
     public BatteryReport Battery;
     public HidFunction Function;
-
-    /// <summary>A zeroed structure with StructSize set, as the C *_init does.</summary>
-    public static KeyboardOptions Init() => new() { StructSize = (uint)Marshal.SizeOf<KeyboardOptions>() };
 }
 
 /// <summary>X, Y, wheel and pan are relative; their ranges must hold negative and positive values.</summary>
 [StructLayout(LayoutKind.Sequential)]
-public struct MouseOptions
+public partial struct MouseOptions
 {
     public uint StructSize;
     public uint Reserved;
@@ -543,14 +534,11 @@ public struct MouseOptions
     public uint EnableBattery;
     public BatteryReport Battery;
     public HidFunction Function;
-
-    /// <summary>A zeroed structure with StructSize set, as the C *_init does.</summary>
-    public static MouseOptions Init() => new() { StructSize = (uint)Marshal.SizeOf<MouseOptions>() };
 }
 
 /// <summary>One-bit controls on any HUT page: Consumer, System Control, Camera Control, Telephony, ...</summary>
 [StructLayout(LayoutKind.Sequential)]
-public struct ToggleOptions
+public partial struct ToggleOptions
 {
     public uint StructSize;
     public uint Reserved;
@@ -567,9 +555,6 @@ public struct ToggleOptions
     public uint EnableBattery;
     public BatteryReport Battery;
     public HidFunction Function;
-
-    /// <summary>A zeroed structure with StructSize set, as the C *_init does.</summary>
-    public static ToggleOptions Init() => new() { StructSize = (uint)Marshal.SizeOf<ToggleOptions>() };
 }
 
 /// <summary>One axis.</summary>
@@ -586,7 +571,7 @@ public struct GamepadAxisOption
 
 /// <summary>At least two axes, one of them MIMUSB_AXIS_X and one MIMUSB_AXIS_Y, each role once.</summary>
 [StructLayout(LayoutKind.Sequential)]
-public struct GamepadOptions
+public partial struct GamepadOptions
 {
     public uint StructSize;
     public uint Reserved;
@@ -602,14 +587,11 @@ public struct GamepadOptions
     public uint EnableBattery;
     public BatteryReport Battery;
     public HidFunction Function;
-
-    /// <summary>A zeroed structure with StructSize set, as the C *_init does.</summary>
-    public static GamepadOptions Init() => new() { StructSize = (uint)Marshal.SizeOf<GamepadOptions>() };
 }
 
 /// <summary>Fixed-slot Multi-Touch under the Digitizers / Touch Screen Application Collection.</summary>
 [StructLayout(LayoutKind.Sequential)]
-public struct TouchscreenOptions
+public partial struct TouchscreenOptions
 {
     public uint StructSize;
     public uint Reserved;
@@ -636,14 +618,11 @@ public struct TouchscreenOptions
     public uint EnableBattery;
     public BatteryReport Battery;
     public HidFunction Function;
-
-    /// <summary>A zeroed structure with StructSize set, as the C *_init does.</summary>
-    public static TouchscreenOptions Init() => new() { StructSize = (uint)Marshal.SizeOf<TouchscreenOptions>() };
 }
 
 /// <summary>The touchscreen report under the Digitizers / Touch Pad Application Collection, plus button_count click buttons (0 for a buttonless clickpad).</summary>
 [StructLayout(LayoutKind.Sequential)]
-public struct TouchpadOptions
+public partial struct TouchpadOptions
 {
     public uint StructSize;
     public uint Reserved;
@@ -671,14 +650,11 @@ public struct TouchpadOptions
     public uint EnableBattery;
     public BatteryReport Battery;
     public HidFunction Function;
-
-    /// <summary>A zeroed structure with StructSize set, as the C *_init does.</summary>
-    public static TouchpadOptions Init() => new() { StructSize = (uint)Marshal.SizeOf<TouchpadOptions>() };
 }
 
 /// <summary>A stylus under the Digitizers / Pen Application Collection (a direct, on-screen pen).</summary>
 [StructLayout(LayoutKind.Sequential)]
-public struct PenOptions
+public partial struct PenOptions
 {
     public uint StructSize;
     public uint Reserved;
@@ -699,14 +675,11 @@ public struct PenOptions
     public uint EnableBattery;
     public BatteryReport Battery;
     public HidFunction Function;
-
-    /// <summary>A zeroed structure with StructSize set, as the C *_init does.</summary>
-    public static PenOptions Init() => new() { StructSize = (uint)Marshal.SizeOf<PenOptions>() };
 }
 
 /// <summary>The pen report under the Digitizers / Digitizer Application Collection (an indirect tablet).</summary>
 [StructLayout(LayoutKind.Sequential)]
-public struct DigitizerOptions
+public partial struct DigitizerOptions
 {
     public uint StructSize;
     public uint Reserved;
@@ -727,9 +700,6 @@ public struct DigitizerOptions
     public uint EnableBattery;
     public BatteryReport Battery;
     public HidFunction Function;
-
-    /// <summary>A zeroed structure with StructSize set, as the C *_init does.</summary>
-    public static DigitizerOptions Init() => new() { StructSize = (uint)Marshal.SizeOf<DigitizerOptions>() };
 }
 
 /// <summary>An Input report a generic HID Node may send: its Report ID and its exact length on the wire.</summary>

@@ -46,7 +46,7 @@ def main() -> int:
                 mouse.submit_blocking()
                 assert [p.placement.first_interface for p in board._placements] == [0, 1]
                 # An options structure the library refuses comes back as its error, and the Board stays usable.
-                expect(mimusb.Error, lambda: board.keyboard(mimusb.values.keyboard_options(usage_minimum=0)))
+                expect(mimusb.Error, lambda: board.keyboard(mimusb.initial.keyboard_options(usage_minimum=0)))
             assert not board.raw
             # A missing baud rate or identity is a TypeError: nothing is filled in for the caller.
             expect(TypeError, lambda: mimusb.Board(library, port))
