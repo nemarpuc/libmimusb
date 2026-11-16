@@ -2,9 +2,9 @@
 // Copyright (c) 2026 libmimusb contributors
 /* The simulated board as a program, for the tests of the language bindings: it creates a
  * pseudo-terminal, starts the firmware core on its master side, prints the slave's name on the
- * first line of stdout and runs until stdin is closed. Open that name as the board's serial port. */
+ * first line of stdout and runs until stdin is closed. Open that name as the board's serial port.
+ */
 #define _XOPEN_SOURCE 600
-#define _DEFAULT_SOURCE 1 /* cfmakeraw */
 #include "fake_board.h"
 
 #include <fcntl.h>
@@ -22,7 +22,13 @@ int main(void) {
         return 1;
     }
     tcgetattr(master, &tio);
-    cfmakeraw(&tio);
+    /* Raw mode by hand: cfmakeraw is hidden by _XOPEN_SOURCE on macOS. */
+    tio.c_iflag = 0;
+    tio.c_oflag = 0;
+    tio.c_lflag = 0;
+    tio.c_cflag = (tio.c_cflag & ~(tcflag_t)(CSIZE | PARENB)) | CS8;
+    tio.c_cc[VMIN] = 1;
+    tio.c_cc[VTIME] = 0;
     tcsetattr(master, TCSANOW, &tio);
     fcntl(master, F_SETFL, fcntl(master, F_GETFL) | O_NONBLOCK);
     if (fake_board_start(master) != 0)

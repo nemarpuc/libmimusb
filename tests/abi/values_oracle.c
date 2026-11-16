@@ -7,12 +7,13 @@
 
 #include <stdio.h>
 
-#define DUMP(name, value)                                                                   \
-    do {                                                                                    \
-        const unsigned char* bytes = (const unsigned char*)&(value);                        \
-        printf("%s=", name);                                                                \
-        for (size_t i = 0; i < sizeof(value); ++i) printf("%02x", (unsigned)bytes[i]);      \
-        printf("\n");                                                                       \
+#define DUMP(name, value)                                                                          \
+    do {                                                                                           \
+        const unsigned char* bytes = (const unsigned char*)&(value);                               \
+        printf("%s=", name);                                                                       \
+        for (size_t i = 0; i < sizeof(value); ++i)                                                 \
+            printf("%02x", (unsigned)bytes[i]);                                                    \
+        printf("\n");                                                                              \
     } while (0)
 
 int main(void) {
@@ -52,8 +53,9 @@ int main(void) {
     DUMP("hid_endpoint0", node.ep_in);
     test_fill_node_config(&node, 3U);
     DUMP("hid_endpoint3", node.ep_in);
-    printf("gamepad_axes=%s,%s,%s,%s\n", gamepad.axes[0].expected_linux_code, gamepad.axes[1].expected_linux_code,
-           gamepad.axes[2].expected_linux_code, gamepad.axes[3].expected_linux_code);
+    printf("gamepad_axes=%s,%s,%s,%s\n", gamepad.axes[0].expected_linux_code,
+           gamepad.axes[1].expected_linux_code, gamepad.axes[2].expected_linux_code,
+           gamepad.axes[3].expected_linux_code);
     printf("strings=%s,%s\n", config.usb_device.manufacturer, config.usb_device.product);
     return 0;
 }
