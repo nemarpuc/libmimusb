@@ -6,6 +6,10 @@ change of the minor number may change the API, the ABI or the wire protocol.
 
 ## [Unreleased]
 
+## [0.7.4] - 2026-11-17
+
+**Not hardware-verified.** The C library, its ABI, the wire protocol and the firmware are those of 0.7.3 (the firmware only reports the new patch number; a 0.7.3 board still works). This release changes the language bindings, tests and examples. The owning `Board` was run only against the simulated board on a pseudo-terminal (`mimusb_sim_server`); no real board was used with it.
+
 ### Added
 
 - Bindings: initial values and an owning `Board` for the Python, C# and Rust bindings
