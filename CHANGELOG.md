@@ -8,7 +8,20 @@ change of the minor number may change the API, the ABI or the wire protocol.
 
 ## [0.7.4] - 2026-11-17
 
-**Not hardware-verified.** The C library, its ABI, the wire protocol and the firmware are those of 0.7.3 (the firmware only reports the new patch number; a 0.7.3 board still works). This release changes the language bindings, tests and examples. The owning `Board` was run only against the simulated board on a pseudo-terminal (`mimusb_sim_server`); no real board was used with it.
+**Not hardware-verified as `tests/hw/README.md` defines it; what was run on a board is listed under "Run on a board" below.** The C library, its ABI, the wire protocol and the firmware are those of 0.7.3 (the firmware only reports the new patch number; a 0.7.3 board still works). This release changes the language bindings, tests and examples. The owning `Board` was run only against the simulated board on a pseudo-terminal (`mimusb_sim_server`); no real board was used with it.
+
+### Run on a board
+
+2026-11-18, this library at v0.7.4 (Release build), a board on a Prolific PL2303 adapter (067b:23a3)
+at 7,812,500 baud, the target being the same machine: Linux 7.2.11-arch1-1 in a VMware guest. Run:
+`hw_bulk` (wait, newest, oldest), `hw_control_rules`, `hw_composite`, `hw_bytes` (bytes, bos),
+`hw_iso`, `hw_cdc`, `hw_msc`, `hw_ecm`, `hw_dfu`, `hw_printer`, `hw_midi`; all passed, with no CRC,
+framing or overrun errors in the link counters. One `hw_msc` run failed once (a CSW read timed out
+in one of 128 write and read pairs of 4 KiB); three runs after it passed, and the cause was not
+found. Not run: steps 3 to 7 and 9 of `tests/hw/README.md` (`basic_keyboard_mouse`,
+`mimusb_verify_*`, re-enumeration, unplug, crashed program, latency), Windows, macOS or Android as
+the target, the RP2350, the other boards, the language bindings' `Board`. The board's chip and
+firmware version were not recorded.
 
 ### Added
 
