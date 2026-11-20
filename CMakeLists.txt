@@ -126,6 +126,7 @@ set(MIMUSB_SOURCES
     src/api/c_api_endpoint.cpp
     src/api/c_api_node.cpp
     src/api/c_api_spec.cpp
+    src/api/board_events.cpp
     src/api/device_ops.cpp
     src/api/error_detail.cpp
     src/hid/descriptor_builder.cpp

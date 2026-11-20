@@ -66,7 +66,7 @@ inline std::uint16_t public_node_id(const mimusb_node* node) noexcept {
     return node == nullptr ? std::uint16_t{0} : static_cast<std::uint16_t>(node->node_id + 1U);
 }
 
-// ---- device_ops.cpp: configuration checks, interface assignment, commit and board events ----
+// ---- device_ops.cpp: configuration checks, interface assignment and commit ----
 
 // UTF-8 to the UTF-16 a USB string descriptor carries (USB 2.0 9.6.7). False for malformed UTF-8,
 // a control character or more than MIMUSB_STRING_MAX code units; null is the empty string.
@@ -158,6 +158,8 @@ mimusb_result change_rule_data(mimusb_device* device, mimusb_node* node, std::si
 void set_live_answer(mimusb_device* device, const FunctionClass* owner, std::uint8_t tag,
                      std::uint8_t iface, const std::vector<std::uint8_t>& bytes);
 void start_rule_updater(mimusb_device* device);
+// Puts every live rule back to its initial bytes (the target configured the device again).
+void reset_live_answers(mimusb_device* device);
 void stop_rule_updater(mimusb_device* device) noexcept;
 
 void deliver_event(mimusb_device* device, const tr::BoardEvent& board) noexcept;
