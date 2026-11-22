@@ -6,6 +6,10 @@ change of the minor number may change the API, the ABI or the wire protocol.
 
 ## [Unreleased]
 
+## [0.7.5] - 2026-11-22
+
+**Not hardware-verified.** The C library, its ABI, the wire protocol and the firmware are those of 0.7.4 (the firmware only reports the new patch number; a 0.7.4 board still works). Only the host's check of a raw HID descriptor changed, and it was tested against the simulated board on a pseudo-terminal and the unit tests; no real board was used.
+
 ### Changed
 
 - `mimusb_spec_create_hid` no longer judges the descriptor. It reads item boundaries (short and long items) and
