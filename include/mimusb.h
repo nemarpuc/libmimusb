@@ -993,7 +993,8 @@ typedef struct mimusb_hid_report {
     uint32_t wire_length;
 } mimusb_hid_report;
 
-/* A descriptor of the caller's own. A descriptor with Output items needs requires_output 1 (they
+/* A descriptor of the caller's own; reports lists its Input reports and is empty when it has none.
+ * A descriptor with Output items needs requires_output 1 (they
  * arrive as MIMUSB_EVENT_OUTPUT_REPORT), one with Feature items requires_feature_response 1 (the
  * board answers with mimusb_node_set_feature_response). */
 typedef struct mimusb_hid_options {
@@ -1753,9 +1754,9 @@ mimusb_spec_create_digitizer(const mimusb_digitizer_options* options, mimusb_spe
 /* mimusb_spec_create_hid
  * Makes a Spec from the caller's own HID report descriptor.
  * Returns: As every factory, MIMUSB_OK through MIMUSB_ERR_OVERFLOW; MIMUSB_ERR_PARAM also for a
- * descriptor that does not parse or does not match the report table; MIMUSB_ERR_UNSUPPORTED for
- * Output or Feature items without the matching requires_* flag, a long item, or a construct the
- * parser does not handle. */
+ * descriptor with an item that runs past its end, a Report ID the table cannot name, or one that
+ * does not match the report table; MIMUSB_ERR_UNSUPPORTED for Output or Feature items without
+ * the matching requires_* flag. Nothing else about the descriptor is judged. */
 MIMUSB_API mimusb_result MIMUSB_CALL mimusb_spec_create_hid(const mimusb_hid_options* options,
                                                             mimusb_spec** out_spec);
 

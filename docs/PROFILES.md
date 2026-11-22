@@ -513,14 +513,19 @@ and `battery` (`mimusb_battery_report`):
 
 ### 1. Validated raw `Spec` (`mimusb_spec_create_hid` + `mimusb_node_open` + `mimusb_hid_submit`)
 
-`mimusb_spec_create_hid(const mimusb_hid_options*, mimusb_spec**)` parses the
-descriptor with `validate_raw`:
+`mimusb_spec_create_hid(const mimusb_hid_options*, mimusb_spec**)` reads the
+descriptor with `validate_raw`, for the wire length of each Input report and no more.
+Whether the target's HID parser accepts the descriptor is the target's answer; the
+library does not judge Usages, extents, Units, Collections, Delimiters, reserved
+tags or flag bits, or field widths:
 
-- `descriptor` (`1..65535` bytes) must have balanced collections, valid Global
-  and Local items, and only top-level `Application` collections.
-- `reports` (`1..256` `mimusb_hid_report` entries) must list the exact set of
+- `descriptor` (`1..65535` bytes) must have every item whole (a short item, or a
+  long one, which is stepped over), Report IDs of 1 to 255 that come before the
+  first data item, and sizes that do not overflow.
+- `reports` (`0..256` `mimusb_hid_report` entries) must list the exact set of
   Input reports (`report_id` and `wire_length`, including the 1-byte Report ID
-  prefix when `report_id.enabled == 1`) that the descriptor declares.
+  prefix when `report_id.enabled == 1`) that the descriptor declares; a
+  descriptor with no Input report takes an empty table.
 - If the descriptor contains `Output` Main items, `options->requires_output`
   must be `1`; if it contains `Feature` Main items,
   `options->requires_feature_response` must be `1` (`MIMUSB_ERR_UNSUPPORTED`

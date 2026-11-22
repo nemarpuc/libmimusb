@@ -293,15 +293,18 @@ void test_raw() {
         base, &mimusb_spec_create_hid,
         {
             {"hid.options", MIMUSB_ERR_PARAM, [](auto& o) { o.requires_output = 2U; }},
-            {"hid.reports", MIMUSB_ERR_UNSET_FIELD, [](auto& o) { o.report_count = 0U; }},
+            {"hid.reports", MIMUSB_ERR_PARAM, [](auto& o) { o.report_count = 0U; }},
             {"hid.reports", MIMUSB_ERR_OVERFLOW, [](auto& o) { o.report_count = 257U; }},
             {"hid", MIMUSB_ERR_PARAM, [](auto& o) { o.reports = &wrong_length; }},
         });
 }
 
-// Raw descriptors the parser refuses, each naming the item at fault.
+// Raw descriptors the library refuses, each naming the item at fault. What the library cannot
+// represent is all it refuses: a Report ID outside 1-255 or after unnumbered data, an item cut off,
+// a report table that does not describe the Input reports.
 void test_raw_descriptors() {
-    const mimusb_hid_report report{{1U, 1U, {}}, 2U};
+    const mimusb_hid_report report = {{1U, 1U, {}}, 2U};
+    const mimusb_hid_report one_byte = {{0U, 0U, {}}, 1U};
     const mimusb_hid_report two[2] = {{{1U, 1U, {}}, 2U}, {{1U, 2U, {}}, 2U}};
     const struct {
         std::vector<std::uint8_t> descriptor;
@@ -309,28 +312,31 @@ void test_raw_descriptors() {
         std::size_t count;
         const char* field;
     } cases[] = {
-        // A Usage Page above 16 bits.
-        {{0x07, 0x00, 0x00, 0x01, 0x00, 0x09, 0x06, 0xA1, 0x01, 0xC0},
-         &report,
-         1,
-         "hid.usage_page"},
-        // A Pop with no Push.
-        {{0xB4, 0x05, 0x01}, &report, 1, "hid.global_stack"},
         // Report ID zero.
         {{0x05, 0x01, 0x09, 0x06, 0xA1, 0x01, 0x85, 0x00, 0xC0}, &report, 1, "hid.report_id"},
-        // Input outside any collection.
-        {{0x75, 0x08, 0x95, 0x01, 0x81, 0x02}, &report, 1, "hid.input"},
-        // Input without a Report Size.
-        {{0x05, 0x01, 0x09, 0x06, 0xA1, 0x01, 0x85, 0x01, 0x95, 0x01, 0x81, 0x02, 0xC0},
-         &report,
+        // A Report ID after data of the unnumbered report.
+        {{0x75, 0x08, 0x95, 0x01, 0x81, 0x02, 0x85, 0x01}, &one_byte, 1, "hid.report_id"},
+        // An item cut off at the end.
+        {{0x05, 0x01, 0x09, 0x06, 0xA1, 0x01, 0x75, 0x08, 0x95, 0x01, 0x81, 0x02, 0xC0, 0x05},
+         &one_byte,
          1,
-         "hid.input"},
-        // Report 1 in two top-level collections.
-        {{0x05, 0x01, 0x09, 0x06, 0xA1, 0x01, 0x85, 0x01, 0x75, 0x04, 0x95, 0x01, 0x81, 0x02,
-          0xC0, 0x09, 0x02, 0xA1, 0x01, 0x85, 0x01, 0x75, 0x04, 0x95, 0x01, 0x81, 0x02, 0xC0},
+         "hid.descriptor"},
+        // A long item cut off at the end.
+        {{0x05, 0x01, 0x09, 0x06, 0xA1, 0x01, 0xC0, 0xFE, 0x04, 0x00, 0x01},
+         nullptr,
+         0,
+         "hid.descriptor"},
+        // Input data with no accepted report for it.
+        {{0x05, 0x01, 0x09, 0x06, 0xA1, 0x01, 0x85, 0x01, 0x75, 0x08, 0x95, 0x01, 0x81, 0x02, 0xC0},
+         nullptr,
+         0,
+         "hid.reports"},
+        // Two reports in the descriptor, one in the table.
+        {{0x05, 0x01, 0x09, 0x06, 0xA1, 0x01, 0x85, 0x01, 0x75, 0x04, 0x95, 0x01, 0x81, 0x02, 0x85,
+          0x02, 0x81, 0x02, 0xC0},
          two,
          1,
-         "hid.input"},
+         "hid.reports"},
     };
     for (const auto& c : cases) {
         const mimusb::hid::ValidationIssue issue =
@@ -340,6 +346,28 @@ void test_raw_descriptors() {
             std::fprintf(stderr, "raw case %s: got %s at %s\n", c.field,
                          mimusb_result_name(issue.result), issue.field ? issue.field : "(null)");
         MIMUSB_CHECK(issue.result != MIMUSB_OK && named);
+    }
+    // Everything else is the target's to judge: these are accepted.
+    const struct {
+        std::vector<std::uint8_t> descriptor;
+        const mimusb_hid_report* reports;
+        std::size_t count;
+    } accepted[] = {
+        // A Usage Page above 16 bits, a Pop with no Push, Input outside any collection, Input
+        // without a Report Size, report 1 in two top-level collections.
+        {{0x07, 0x00, 0x00, 0x01, 0x00, 0x09, 0x06, 0xA1, 0x01, 0xC0}, nullptr, 0},
+        {{0xB4, 0x05, 0x01}, nullptr, 0},
+        {{0x75, 0x08, 0x95, 0x01, 0x81, 0x02}, &one_byte, 1},
+        {{0x05, 0x01, 0x09, 0x06, 0xA1, 0x01, 0x95, 0x01, 0x81, 0x02, 0xC0}, nullptr, 0},
+        {{0x05, 0x01, 0x09, 0x06, 0xA1, 0x01, 0x85, 0x01, 0x75, 0x04, 0x95, 0x01, 0x81, 0x02,
+          0xC0, 0x09, 0x02, 0xA1, 0x01, 0x85, 0x01, 0x75, 0x04, 0x95, 0x01, 0x81, 0x02, 0xC0},
+         &report,
+         1},
+    };
+    for (const auto& c : accepted) {
+        MIMUSB_CHECK(
+            mimusb::hid::validate_raw(c.descriptor.data(), c.descriptor.size(), c.reports, c.count)
+                .result == MIMUSB_OK);
     }
 }
 

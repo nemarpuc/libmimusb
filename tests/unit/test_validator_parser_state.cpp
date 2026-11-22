@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 libmimusb contributors
-/* Raw descriptor validation against the target parser's state machine: what a Main item needs
- * from the Global and Local state, local state reset, and delimiters. */
+/* Raw descriptor validation: what the library takes from a descriptor (the wire length of each
+ * report and what the target's parser is asked to hold), local state reset, and delimiters. */
 #include "hid/validator.hpp"
 #include "raw_descriptor_support.hpp"
 #include "test.hpp"
@@ -168,19 +168,6 @@ void test_target_neutral_raw_requirements() {
         MIMUSB_CHECK(result.result == MIMUSB_OK);
         MIMUSB_CHECK(requirements.maximum_usages == 12289U);
     }
-    {
-        auto descriptor = application_preamble();
-        append_globals(&descriptor, 1U, 1U);
-        // The audited target's inclusive u32 loop can wrap for some Local
-        // states when the raw Maximum is UINT32_MAX. The validated raw subset
-        // conservatively rejects every such Maximum as project policy.
-        descriptor.insert(descriptor.end(), {0x1BU, 0xFFU, 0xFFU, 0xFFU, 0xFFU, 0x2BU, 0xFFU, 0xFFU,
-                                             0xFFU, 0xFFU, 0x81U, 0x02U, 0xC0U});
-        const mimusb_hid_report report = idless_report(1U);
-        MIMUSB_CHECK(
-            mimusb::hid::validate_raw(descriptor.data(), descriptor.size(), &report, 1U).result ==
-            MIMUSB_ERR_UNSUPPORTED);
-    }
 }
 
 void test_local_state_and_delimiters() {
@@ -234,69 +221,52 @@ void test_local_state_and_delimiters() {
         MIMUSB_CHECK(requirements.maximum_fields_per_report == 0U);
         MIMUSB_CHECK(requirements.maximum_usages == 5U);
     }
-    for (const std::vector<std::uint8_t>& suffix :
-         {std::vector<std::uint8_t>{0xA9U, 0x01U, 0xA9U, 0x01U},
-          std::vector<std::uint8_t>{0xA9U, 0x00U}}) {
-        auto descriptor = application_preamble();
-        descriptor.insert(descriptor.end(), suffix.begin(), suffix.end());
-        descriptor.push_back(0xC0U);
-        const mimusb_hid_report report = idless_report(1U);
-        mimusb::hid::DescriptorRequirements requirements{99U, 99U, 99U, 99U, 99U};
-        const mimusb::hid::ValidationIssue result = mimusb::hid::validate_raw(
-            descriptor.data(), descriptor.size(), &report, 1U, nullptr, &requirements);
-        MIMUSB_CHECK(result.result == MIMUSB_ERR_PARAM);
-        MIMUSB_CHECK(requirements.maximum_fields_per_report == 0U);
-        MIMUSB_CHECK(requirements.maximum_global_stack_depth == 0U);
-        MIMUSB_CHECK(requirements.maximum_report_size_bits == 0U);
-        MIMUSB_CHECK(requirements.maximum_usages == 0U);
-        MIMUSB_CHECK(requirements.maximum_report_data_bits == 0U);
+    {
+        // Delimiters that nest, close without opening or stay open do not change what a report
+        // holds; whether the target parser takes them is its answer. No Input item, so no report.
+        for (const std::vector<std::uint8_t>& suffix :
+             {std::vector<std::uint8_t>{0xA9U, 0x01U, 0xA9U, 0x01U},
+              std::vector<std::uint8_t>{0xA9U, 0x00U}, std::vector<std::uint8_t>{0xA9U, 0x01U}}) {
+            auto descriptor = application_preamble();
+            descriptor.insert(descriptor.end(), suffix.begin(), suffix.end());
+            descriptor.push_back(0xC0U);
+            MIMUSB_CHECK(
+                mimusb::hid::validate_raw(descriptor.data(), descriptor.size(), nullptr, 0U)
+                    .result == MIMUSB_OK);
+        }
     }
     {
+        // A Usage range that ends below its start counts nothing.
         auto descriptor = application_preamble();
         append_globals(&descriptor, 1U, 1U);
         descriptor.insert(descriptor.end(), {0x19U, 0x05U, 0x29U, 0x04U, 0x81U, 0x02U, 0xC0U});
         const mimusb_hid_report report = idless_report(1U);
-        mimusb::hid::DescriptorRequirements requirements{99U, 99U, 99U, 99U, 99U};
-        const mimusb::hid::ValidationIssue result = mimusb::hid::validate_raw(
-            descriptor.data(), descriptor.size(), &report, 1U, nullptr, &requirements);
-        MIMUSB_CHECK(result.result == MIMUSB_ERR_PARAM);
+        mimusb::hid::DescriptorRequirements requirements{};
+        MIMUSB_CHECK(mimusb::hid::validate_raw(descriptor.data(), descriptor.size(), &report, 1U,
+                                               nullptr, &requirements)
+                         .result == MIMUSB_OK);
+        MIMUSB_CHECK(requirements.maximum_usages == 1U);
         MIMUSB_CHECK(requirements.maximum_fields_per_report == 0U);
-        MIMUSB_CHECK(requirements.maximum_global_stack_depth == 0U);
-        MIMUSB_CHECK(requirements.maximum_report_size_bits == 0U);
-        MIMUSB_CHECK(requirements.maximum_usages == 0U);
-        MIMUSB_CHECK(requirements.maximum_report_data_bits == 0U);
     }
     {
-        // HID 1.11 section 6.2.2.8 forbids delimiter aliases for an
-        // Application Collection Usage.
-        const std::vector<std::uint8_t> descriptor{0x05U, 0x01U, 0xA9U, 0x01U, 0x09U, 0x06U,
-                                                   0xA9U, 0x00U, 0xA1U, 0x01U, 0xC0U};
-        const mimusb_hid_report report = idless_report(1U);
+        // Delimiters around the Usages of an Application Collection, of an Array item, or left
+        // open at a Main item are not the library's to refuse.
+        const std::vector<std::uint8_t> application{0x05U, 0x01U, 0xA9U, 0x01U, 0x09U, 0x06U,
+                                                    0xA9U, 0x00U, 0xA1U, 0x01U, 0xC0U};
         MIMUSB_CHECK(
-            mimusb::hid::validate_raw(descriptor.data(), descriptor.size(), &report, 1U).result ==
-            MIMUSB_ERR_PARAM);
-    }
-    {
-        // The same section forbids delimiter aliases for Array items.
-        auto descriptor = application_preamble();
-        append_globals(&descriptor, 8U, 1U);
-        descriptor.insert(descriptor.end(),
-                          {0xA9U, 0x01U, 0x09U, 0x04U, 0xA9U, 0x00U, 0x81U, 0x00U, 0xC0U});
+            mimusb::hid::validate_raw(application.data(), application.size(), nullptr, 0U).result ==
+            MIMUSB_OK);
         const mimusb_hid_report report = idless_report(1U);
-        MIMUSB_CHECK(
-            mimusb::hid::validate_raw(descriptor.data(), descriptor.size(), &report, 1U).result ==
-            MIMUSB_ERR_PARAM);
-    }
-    {
-        // A delimiter set brackets alternatives and must close before the
-        // consuming Main item.
-        auto descriptor = application_preamble();
-        append_globals(&descriptor, 1U, 1U);
-        descriptor.insert(descriptor.end(), {0xA9U, 0x01U, 0x09U, 0x01U, 0x81U, 0x02U, 0xC0U});
-        const mimusb_hid_report report = idless_report(1U);
-        MIMUSB_CHECK(
-            mimusb::hid::validate_raw(descriptor.data(), descriptor.size(), &report, 1U).result ==
-            MIMUSB_ERR_PARAM);
+        auto array = application_preamble();
+        append_globals(&array, 8U, 1U);
+        array.insert(array.end(), {0xA9U, 0x01U, 0x09U, 0x04U, 0xA9U, 0x00U, 0x81U, 0x00U, 0xC0U});
+        MIMUSB_CHECK(mimusb::hid::validate_raw(array.data(), array.size(), &report, 1U).result ==
+                     MIMUSB_OK);
+        auto open = application_preamble();
+        append_globals(&open, 1U, 1U);
+        open.insert(open.end(), {0xA9U, 0x01U, 0x09U, 0x01U, 0x81U, 0x02U, 0xC0U});
+        MIMUSB_CHECK(mimusb::hid::validate_raw(open.data(), open.size(), &report, 1U).result ==
+                     MIMUSB_OK);
     }
 }
 

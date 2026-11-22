@@ -6,6 +6,16 @@ change of the minor number may change the API, the ABI or the wire protocol.
 
 ## [Unreleased]
 
+### Changed
+
+- `mimusb_spec_create_hid` no longer judges the descriptor. It reads item boundaries (short and long items) and
+  works out the wire length of each Input report, and refuses only what it cannot represent: an item that runs past
+  the end, a Report ID outside 1-255 or after unnumbered data, an arithmetic overflow, a table that does not match
+  the Input reports, Output or Feature items without `requires_output` / `requires_feature_response`. Usages,
+  Logical and Physical extents, Units, Collections, Delimiters, reserved tags and flag bits, field widths and spans
+  are the target's HID parser's to judge. A descriptor with no Input report takes an empty `reports` table.
+  Generated profiles are validated as before.
+
 ## [0.7.4] - 2026-11-17
 
 **Not hardware-verified as `tests/hw/README.md` defines it; what was run on a board is listed under "Run on a board" below.** The C library, its ABI, the wire protocol and the firmware are those of 0.7.3 (the firmware only reports the new patch number; a 0.7.3 board still works). This release changes the language bindings, tests and examples. The owning `Board` was run only against the simulated board on a pseudo-terminal (`mimusb_sim_server`); no real board was used with it.

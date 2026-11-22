@@ -710,7 +710,7 @@ public struct HidReport
     public uint WireLength;
 }
 
-/// <summary>A descriptor of the caller's own.</summary>
+/// <summary>A descriptor of the caller's own; reports lists its Input reports and is empty when it has none.</summary>
 [StructLayout(LayoutKind.Sequential)]
 public struct HidOptions
 {

@@ -664,7 +664,7 @@ mimusb_result mimusb_spec_create_hid(const mimusb_hid_options* options, mimusb_s
 - **Ownership:** As every factory.
 - **Blocking:** None.
 - **Synchronization:** Any thread.
-- **Returns:** As every factory, `MIMUSB_OK` through `MIMUSB_ERR_OVERFLOW`; `MIMUSB_ERR_PARAM` also for a descriptor that does not parse or does not match the report table; `MIMUSB_ERR_UNSUPPORTED` for Output or Feature items without the matching requires_* flag, a long item, or a construct the parser does not handle.
+- **Returns:** As every factory, `MIMUSB_OK` through `MIMUSB_ERR_OVERFLOW`; `MIMUSB_ERR_PARAM` also for a descriptor with an item that runs past its end, a Report ID the table cannot name, or one that does not match the report table; `MIMUSB_ERR_UNSUPPORTED` for Output or Feature items without the matching requires_* flag. Nothing else about the descriptor is judged.
 
 #### `mimusb_spec_create_cdc_acm`
 

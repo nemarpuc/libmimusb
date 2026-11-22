@@ -850,7 +850,7 @@ class HidReport(c.Structure):
 
 
 class HidOptions(c.Structure):
-    """A descriptor of the caller's own."""
+    """A descriptor of the caller's own; reports lists its Input reports and is empty when it has none."""
 
     _fields_ = [
         ("struct_size", c.c_uint32),

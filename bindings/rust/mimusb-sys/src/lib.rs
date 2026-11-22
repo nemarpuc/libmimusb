@@ -754,7 +754,7 @@ pub struct mimusb_hid_report {
     pub wire_length: u32,
 }
 
-/// A descriptor of the caller's own.
+/// A descriptor of the caller's own; reports lists its Input reports and is empty when it has none.
 #[repr(C)]
 pub struct mimusb_hid_options {
     pub struct_size: u32,

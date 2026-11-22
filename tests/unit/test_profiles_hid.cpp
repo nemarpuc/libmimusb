@@ -65,9 +65,10 @@ void test_raw_report_id_order() {
     const std::array<std::uint8_t, 19> range_exceeds_size{
         0x05U, 0x01U, 0x09U, 0x06U, 0xA1U, 0x01U, 0x85U, 0x01U, 0x15U, 0x00U,
         0x25U, 0x03U, 0x75U, 0x01U, 0x95U, 0x01U, 0x81U, 0x02U, 0xC0U};
+    // A Logical Maximum that does not fit the Report Size does not change the report length.
     MIMUSB_CHECK(
         mimusb::hid::validate_raw(range_exceeds_size.data(), range_exceeds_size.size(), &report, 1U)
-            .result == MIMUSB_ERR_PARAM);
+            .result == MIMUSB_OK);
 }
 
 void test_raw_report_table_report_id_rules() {

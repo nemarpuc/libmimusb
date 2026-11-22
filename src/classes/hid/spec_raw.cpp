@@ -34,9 +34,9 @@ static mimusb_result mimusb_spec_create_hid_impl(const mimusb_hid_options* optio
     // count-derived allocation before using the caller's count so an invalid
     // raw table cannot turn a deterministic validation error into allocation
     // pressure or std::length_error.
-    if (options->reports == nullptr || options->report_count == 0U) {
+    if (options->reports == nullptr && options->report_count != 0U) {
         set_error(MIMUSB_ERR_UNSET_FIELD, "hid.reports",
-                  "Raw descriptors require an explicit accepted-report table.");
+                  "The accepted-report table is null but its count is not zero.");
         return MIMUSB_ERR_UNSET_FIELD;
     }
     if (options->report_count > 256U) {
@@ -60,7 +60,9 @@ static mimusb_result mimusb_spec_create_hid_impl(const mimusb_hid_options* optio
     spec->requirements = requirements;
     spec->descriptor.assign(options->descriptor, options->descriptor + options->descriptor_length);
     mimusb::detail::RawConfig config{};
-    config.reports.assign(options->reports, options->reports + options->report_count);
+    if (options->report_count != 0U) {
+        config.reports.assign(options->reports, options->reports + options->report_count);
+    }
     config.trailing_valid_masks = std::move(trailing_valid_masks);
     for (const mimusb_hid_report& report : config.reports) {
         spec->report_capabilities.push_back(
