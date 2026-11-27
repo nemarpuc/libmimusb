@@ -30,6 +30,9 @@ made by a factory, opened as a `Node`), but they are separate APIs. Here a Spec 
 of any class and a Device can be given as raw descriptors, which libaoahid has no
 equivalent for.
 
+[`libadbhid`](https://github.com/nemarpuc/libadbhid) sends the same HID
+profiles to an Android device through `adb`, also without a board.
+
 ## What it is not
 
 - **Not a source of defaults.** Every `*_init` function zeroes its structure and
