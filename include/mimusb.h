@@ -118,7 +118,8 @@ typedef struct mimusb_node mimusb_node;
  * Every enumeration is an int32_t typedef with anonymous constants, so structure layout does not
  * depend on how a compiler sizes an enum. */
 
-/* A result libaoahid also has keeps the same number there. 5, 9 and 15 are not used. */
+/* A result libaoahid or libadbhid also has keeps the same number there. 5, 9 and 15 are not
+ * used. */
 typedef int32_t mimusb_result;
 enum {
     MIMUSB_OK = 0,
